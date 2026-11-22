@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Food, FoodEntry, Meal } from '../../domain/types';
 import { MEALS, MEAL_LABEL } from '../../domain/types';
 import { fmt, scaleNutrients, sumNutrients } from '../../domain/nutrients';
@@ -48,13 +48,31 @@ export function VoiceLogSheet({ date, onClose }: { date: string; onClose: () => 
   const [sttError, setSttError] = useState<string | null>(null);
   const [agentText, setAgentText] = useState<string | null>(null);
 
+  // Recording callbacks are created when recording *starts*; read current values through a ref
+  // so the result isn't judged against a stale transcript / catalog state.
+  const latest = useRef({ text, assistantOn, autoLog: assistant.autoLog, cloudStt });
+  latest.current = { text, assistantOn, autoLog: assistant.autoLog, cloudStt };
+  const [queuedForAgent, setQueuedForAgent] = useState<string | null>(null);
+  useEffect(() => {
+    // start the agent once the catalog is loaded
+    if (queuedForAgent && ready) {
+      setAgentText(queuedForAgent);
+      setQueuedForAgent(null);
+    }
+  }, [queuedForAgent, ready]);
+
   const handleAudio = async (blob: Blob) => {
-    if (!cloudStt) return;
+    const { cloudStt: stt } = latest.current;
+    if (!stt) return;
     setSttError(null);
     setTranscribing(true);
     try {
-      const t = await transcribeAudio(blob, cloudStt);
-      speech.setTranscript((prev) => (prev ? `${prev} ${t}` : t));
+      const t = await transcribeAudio(blob, stt);
+      const now = latest.current;
+      const full = now.text.trim() ? `${now.text.trim()} ${t}` : t;
+      speech.setTranscript(full);
+      // voice note → agent, no extra tap (the transcript stays visible on the result screen)
+      if (now.assistantOn && now.autoLog && full.trim()) setQueuedForAgent(full.trim());
     } catch (e) {
       setSttError((e as Error).message);
     } finally {
@@ -191,7 +209,7 @@ export function VoiceLogSheet({ date, onClose }: { date: string; onClose: () => 
     );
   }
 
-  const busy = transcribing || recorder.recording;
+  const busy = transcribing || recorder.recording || !!queuedForAgent;
   return (
     <Sheet title={assistantOn ? 'Tell the assistant' : 'Describe your meal'} onClose={onClose}>
       <div className="stack" style={{ textAlign: 'center' }}>

@@ -38,5 +38,14 @@ test('signed-out visitors get nothing', async () => {
 test('unknown collections and top-level paths are closed', async () => {
   const alice = env.authenticatedContext('alice').firestore();
   await assertFails(setDoc(doc(alice, 'users/alice/secrets/k'), { x: 1 }));
-  await assertFails(setDoc(doc(alice, 'foods/f1'), { x: 1 }));
+  await assertFails(setDoc(doc(alice, 'other/x'), { x: 1 }));
+});
+
+test('food catalog: signed-in users read, nobody writes from the app', async () => {
+  await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'foods/usda:1'), { name: 'Egg' }));
+  const alice = env.authenticatedContext('alice').firestore();
+  await assertSucceeds(getDoc(doc(alice, 'foods/usda:1')));
+  await assertFails(setDoc(doc(alice, 'foods/usda:1'), { name: 'Hacked' }));
+  await assertFails(setDoc(doc(alice, 'catalog/usda'), { count: 0 }));
+  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'foods/usda:1')));
 });

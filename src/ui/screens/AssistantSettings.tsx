@@ -11,7 +11,8 @@ export function AssistantSettingsForm({ onDone }: { onDone: () => void }) {
       </p>
       <div className="field">
         <span>Assistant model</span>
-        <Segmented<AgentProvider> value={s.provider} onChange={(v) => s.set({ provider: v })} label="Provider"
+        <Segmented<AgentProvider> value={s.provider} label="Provider"
+          onChange={(v) => s.set({ provider: v, ...(v === 'openai' && s.transcriber === 'browser' ? { transcriber: 'openai' } : {}) })}
           options={[{ value: 'anthropic', label: 'Claude' }, { value: 'openai', label: 'OpenAI' }]} />
       </div>
       {s.provider === 'anthropic' ? (
@@ -32,6 +33,7 @@ export function AssistantSettingsForm({ onDone }: { onDone: () => void }) {
           </label>
           <label className="field">Model
             <input className="input" value={s.openaiModel} onChange={(e) => s.set({ openaiModel: e.target.value })} />
+            <span className="tiny muted">Any chat model your key can use that supports function calling.</span>
           </label>
         </>
       )}
@@ -62,6 +64,13 @@ export function AssistantSettingsForm({ onDone }: { onDone: () => void }) {
           </label>
           <label className="field">Scribe model<input className="input" value={s.elevenlabsModel} onChange={(e) => s.set({ elevenlabsModel: e.target.value })} /></label>
         </>
+      )}
+
+      {s.transcriber !== 'browser' && (
+        <label className="row small" style={{ gap: 8 }}>
+          <input type="checkbox" checked={s.autoLog} onChange={(e) => s.set({ autoLog: e.target.checked })} />
+          Log voice notes automatically after recording
+        </label>
       )}
 
       <div className="notice tiny">

@@ -16,6 +16,17 @@ service cloud.firestore {
       }
     }
 
+    // Shared food catalog: readable by any signed-in user, written only by the
+    // admin upload script (scripts/upload-foods.mjs), which bypasses these rules.
+    match /foods/{foodId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    match /catalog/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
     // everything else is closed
     match /{document=**} {
       allow read, write: if false;

@@ -14,6 +14,8 @@ export interface AssistantSettings {
   transcriber: Transcriber;
   elevenlabsKey: string;
   elevenlabsModel: string;
+  /** Send a transcribed voice note straight to the assistant (no extra tap). */
+  autoLog: boolean;
   set: (patch: Partial<Omit<AssistantSettings, 'set'>>) => void;
 }
 
@@ -40,6 +42,7 @@ export const useAssistant = create<AssistantSettings>()(
       transcriber: 'browser',
       elevenlabsKey: '',
       elevenlabsModel: 'scribe_v1',
+      autoLog: true,
       set: (patch) => set(patch),
     }),
     { name: 'micenae:assistant', version: 1 },

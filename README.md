@@ -22,7 +22,10 @@ npm run dev:emulators      # app pointed at the emulators
 npm run test:rules         # security-rules tests (runs the emulator)
 npx firebase login         # once, on your machine
 npm run deploy             # build + deploy hosting and Firestore rules
+npm run upload:foods -- --key path/to/service-account.json   # USDA catalog → Firestore foods/{id}
 ```
+
+The food catalog also lives in Firestore (`foods/{id}` plus `catalog/usda` metadata), readable by signed-in users and writable only by the admin upload script. The app still searches its downloaded copy of the same data, because loading 7,770 documents on every app start would use up the free daily read quota in a few launches.
 
 ## Develop
 
