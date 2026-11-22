@@ -12,7 +12,7 @@ import { LevelUp } from './ui/screens/LevelUp';
 import { IconPlan } from './ui/components/IconsExtra';
 import { SignIn } from './ui/screens/SignIn';
 import { useAuthUser } from './firebase/auth';
-import { db } from './firebase/app';
+import { db, PREVIEW } from './firebase/app';
 import { startSync, type SyncStatus } from './firebase/sync';
 import { useSession } from './firebase/session';
 
@@ -43,6 +43,10 @@ function Splash({ text }: { text: string }) {
 
 /** Decides between sign-in, account sync and local-only mode. */
 export function App() {
+  return PREVIEW ? <Main /> : <AccountApp />;
+}
+
+function AccountApp() {
   const user = useAuthUser();
   const localMode = useSession((s) => s.localMode);
   const setLocalMode = useSession((s) => s.setLocalMode);

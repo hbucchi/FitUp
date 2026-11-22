@@ -22,6 +22,8 @@ export const firebaseConfig = {
 };
 
 export const USE_EMULATORS = import.meta.env.VITE_USE_EMULATORS === 'true';
+/** Preview builds (shared test links) run without accounts: data stays in the browser. */
+export const PREVIEW = import.meta.env.VITE_PREVIEW === 'true';
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);

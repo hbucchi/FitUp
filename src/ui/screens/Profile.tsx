@@ -12,6 +12,7 @@ import { AssistantSettingsForm } from './AssistantSettings';
 import { agentReady, useAssistant } from '../../agent/settings';
 import { signInWithGoogle, signOut, useAuthUser } from '../../firebase/auth';
 import { useSession } from '../../firebase/session';
+import { PREVIEW } from '../../firebase/app';
 import { signOutAndClear } from '../../firebase/sync';
 
 export function ProfileScreen() {
@@ -107,7 +108,9 @@ export function ProfileScreen() {
           <h2 className="h-section">Account</h2>
           <span className={`badge ${user ? 'sea' : ''}`}>{user ? 'Synced' : 'This device only'}</span>
         </div>
-        {user ? (
+        {PREVIEW ? (
+          <p className="small muted" style={{ margin: 0 }}>Preview — data stays in this browser.</p>
+        ) : user ? (
           <div className="row between">
             <div className="small" style={{ minWidth: 0 }}>
               <div style={{ fontWeight: 600 }}>{user.displayName ?? 'Signed in'}</div>
