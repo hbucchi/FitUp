@@ -5,8 +5,9 @@ import { todayISO, prettyDate } from '../../domain/dates';
 import { uid, useStore } from '../../data/store';
 import { Sheet } from '../components/Sheet';
 import { IconChevron } from '../components/Icons';
+import { t, tTitle } from '../../i18n';
 
-const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => t(d));
 
 function recommended(p: Program, phase: string, experience?: string) {
   if (!p.goal.includes(phase as never)) return false;
@@ -40,10 +41,10 @@ export function ProgramPickerSheet({ onClose }: { onClose: () => void }) {
       <button key={p.id} className="card list-item" style={{ borderRadius: 'var(--radius)', border: '1px solid var(--line)', marginBottom: 0, alignItems: 'flex-start' }} onClick={() => pick(p)}>
         <div className="main">
           <div className="row" style={{ gap: 8 }}>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 600 }}>{p.name}</div>
-            {rec(p) && <span className="badge sea">Recommended</span>}
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 600 }}>{t(p.name)}</div>
+            {rec(p) && <span className="badge sea">{t('Recommended')}</span>}
           </div>
-          <div className="tiny muted">{p.tagline} · {p.minWeeks === p.maxWeeks ? `${p.minWeeks} weeks` : `${p.minWeeks}–${p.maxWeeks} weeks`}</div>
+          <div className="tiny muted">{t(p.tagline)} · {p.minWeeks === p.maxWeeks ? t('{n} weeks', { n: p.minWeeks }) : t('{n} weeks', { n: `${p.minWeeks}–${p.maxWeeks}` })}</div>
         </div>
         <IconChevron width={16} height={16} />
       </button>
@@ -51,11 +52,11 @@ export function ProgramPickerSheet({ onClose }: { onClose: () => void }) {
     const physique = PROGRAMS.filter((p) => p.category === 'physique').sort((a, b) => Number(rec(b)) - Number(rec(a)));
     const sport = PROGRAMS.filter((p) => p.category === 'sport');
     return (
-      <Sheet title="Choose a program" onClose={onClose}>
+      <Sheet title={t('Choose a program')} onClose={onClose}>
         <div className="stack">
-          <div className="eyebrow">Physique</div>
+          <div className="eyebrow">{t('Physique')}</div>
           {physique.map(card)}
-          <div className="eyebrow" style={{ marginTop: 8 }}>Sport & function</div>
+          <div className="eyebrow" style={{ marginTop: 8 }}>{t('Sport & function')}</div>
           {sport.map(card)}
         </div>
       </Sheet>
@@ -76,23 +77,23 @@ export function ProgramPickerSheet({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Sheet title={program.name} onClose={onClose} leading={<button className="icon-btn" aria-label="Back" onClick={() => setProgram(null)}><IconChevron dir="left" /></button>}
-      footer={<button className="btn primary block" disabled={!preview} onClick={startPlan}>Start program</button>}>
+    <Sheet title={t(program.name)} onClose={onClose} leading={<button className="icon-btn" aria-label={t('Go back')} onClick={() => setProgram(null)}><IconChevron dir="left" /></button>}
+      footer={<button className="btn primary block" disabled={!preview} onClick={startPlan}>{t('Start program')}</button>}>
       <div className="stack">
-        <p className="small muted" style={{ margin: 0 }}>{program.description}</p>
-        {program.notes?.[0] && <div className="notice small">{program.notes[0]}</div>}
+        <p className="small muted" style={{ margin: 0 }}>{t(program.description)}</p>
+        {program.notes?.[0] && <div className="notice small">{t(program.notes[0])}</div>}
         {program.minWeeks !== program.maxWeeks && (
           <label className="field">
-            Length
+            {t('Length')}
             <select className="input" value={weeks} onChange={(e) => setWeeks(Number(e.target.value))}>
               {Array.from({ length: program.maxWeeks - program.minWeeks + 1 }, (_, i) => program.minWeeks + i).map((w) => (
-                <option key={w} value={w}>{w} weeks</option>
+                <option key={w} value={w}>{t('{n} weeks', { n: w })}</option>
               ))}
             </select>
           </label>
         )}
         <div className="field">
-          <span>Training days ({days.length}/{program.daysPerWeek})</span>
+          <span>{t('Training days')} ({days.length}/{program.daysPerWeek})</span>
           <div className="chips">
             {[1, 2, 3, 4, 5, 6, 0].map((d) => (
               <button key={d} className="chip" aria-pressed={days.includes(d)}
@@ -103,28 +104,28 @@ export function ProgramPickerSheet({ onClose }: { onClose: () => void }) {
           </div>
         </div>
         <label className="field" style={{ maxWidth: 200 }}>
-          Start date
+          {t('Start date')}
           <input className="input" type="date" value={start} min={todayISO()} onChange={(e) => setStart(e.target.value)} />
         </label>
         <div className="card" style={{ marginBottom: 0 }}>
-          <div className="eyebrow" style={{ marginBottom: 8 }}>Structure</div>
+          <div className="eyebrow" style={{ marginBottom: 8 }}>{t('Structure')}</div>
           <div className="chips" style={{ gap: 4 }}>
             {structure.map((w) => (
               <span key={w.week} className={`badge ${w.phase === 'deload' ? '' : 'sea'}`} title={w.phase}>
-                W{w.week} · {w.phase === 'deload' ? 'Lighter' : ['Heavy', 'Moderate', 'Light'][w.accIndex % 3]}
+                {t('W{n}', { n: w.week })} · {w.phase === 'deload' ? t('Lighter') : t(['Heavy', 'Moderate', 'Light'][w.accIndex % 3])}
               </span>
             ))}
           </div>
         </div>
         {preview && (
           <div className="card flush" style={{ marginBottom: 0 }}>
-            <div className="meal-head"><h3 className="h-section">First week</h3></div>
+            <div className="meal-head"><h3 className="h-section">{t('First week')}</h3></div>
             <ul className="list">
               {preview.sessions.filter((x) => x.week === 1).map((x) => (
                 <li key={x.id} className="list-item" style={{ alignItems: 'flex-start' }}>
                   <div className="main">
-                    <div className="title">{prettyDate(x.date)} · {x.title}</div>
-                    <div className="sub">{x.exercises.length} exercises</div>
+                    <div className="title">{prettyDate(x.date)} · {tTitle(x.title)}</div>
+                    <div className="sub">{t('{n} exercises', { n: x.exercises.length })}</div>
                   </div>
                   <span className="tiny muted">~{estimateMinutes(x)} min</span>
                 </li>
@@ -132,7 +133,7 @@ export function ProgramPickerSheet({ onClose }: { onClose: () => void }) {
             </ul>
           </div>
         )}
-        {s.activePlan && <p className="tiny muted" style={{ margin: 0 }}>Replaces “{s.activePlan.name}”.</p>}
+        {s.activePlan && <p className="tiny muted" style={{ margin: 0 }}>{t('Replaces “{name}”.', { name: t(s.activePlan.name) })}</p>}
       </div>
     </Sheet>
   );

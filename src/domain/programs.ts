@@ -1,5 +1,6 @@
 import type { ActivePlan, Goal, PlannedExercise, PlannedSession, SlotKind, WeekChoice, WeekVariant } from './types';
 import { SEED_EXERCISES } from './exercises';
+import { t } from '../i18n';
 
 /**
  * Deterministic, periodised training programs (sources: docs/EVIDENCE.md).
@@ -507,21 +508,21 @@ export function weekOptions(program: Program, plan: ActivePlan, week: number): W
 
   opts.push({
     id: 'standard',
-    title: nextInfo.phase === 'deload' ? 'Lighter week, as planned' : `Progress as planned — ${FOCUSES[nextInfo.accIndex % 3].name.toLowerCase()} week`,
-    description: nextInfo.phase === 'deload' ? 'The scheduled lighter week: about half the sets, plenty in reserve.' : 'The next step of the program: a little more volume and effort than last week.',
+    title: nextInfo.phase === 'deload' ? t('Lighter week, as planned') : t('Progress as planned — {focus} week', { focus: t(FOCUSES[nextInfo.accIndex % 3].name).toLowerCase() }),
+    description: nextInfo.phase === 'deload' ? t('The scheduled lighter week: about half the sets, plenty in reserve.') : t('The next step of the program: a little more volume and effort than last week.'),
     choice: mk('standard', next),
   });
   if (prevStep >= 0 && structure[prevStep].phase === 'accumulation') {
-    opts.push({ id: 'repeat', title: 'Repeat last week', description: 'Same loading again — consolidate before progressing (after missed sessions or a stall).', choice: mk('repeat', prevStep) });
+    opts.push({ id: 'repeat', title: t('Repeat last week'), description: t('Same loading again — consolidate before progressing (after missed sessions or a stall).'), choice: mk('repeat', prevStep) });
   }
   if (nextInfo.phase !== 'deload' && prevStep >= 0) {
-    opts.push({ id: 'lighter', title: 'Lighter week now', description: 'Pull a lighter week forward when fatigue builds or performance drops. Progression resumes after.', choice: mk('lighter', prevStep) });
+    opts.push({ id: 'lighter', title: t('Lighter week now'), description: t('Pull a lighter week forward when fatigue builds or performance drops. Progression resumes after.'), choice: mk('lighter', prevStep) });
   }
   if (nextInfo.phase === 'deload' && next + 1 < structure.length) {
-    opts.push({ id: 'skip-deload', title: 'Skip the lighter week', description: 'Go straight into the next block when recovery is good and performance is climbing.', choice: mk('skip-deload', next + 1) });
+    opts.push({ id: 'skip-deload', title: t('Skip the lighter week'), description: t('Go straight into the next block when recovery is good and performance is climbing.'), choice: mk('skip-deload', next + 1) });
   }
   if (program.condensed) {
-    opts.push({ id: 'condensed', title: `Condensed week — ${program.condensed.length} days`, description: `Same progression in ${program.condensed.length} longer sessions, for a busy week.`, choice: mk('condensed', next) });
+    opts.push({ id: 'condensed', title: t('Condensed week — {n} days', { n: program.condensed.length }), description: t('Same progression in {n} longer sessions, for a busy week.', { n: program.condensed.length }), choice: mk('condensed', next) });
   }
   return opts.map((o) => {
     const sessions = buildWeek(program, plan, o.choice);

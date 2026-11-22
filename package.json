@@ -18,6 +18,8 @@
     "build:preview": "VITE_PREVIEW=true vite build --base ./ --outDir dist-preview"
   },
   "dependencies": {
+    "@zxing/browser": "^0.2.1",
+    "@zxing/library": "^0.23.0",
     "firebase": "^13.4.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -31,6 +33,7 @@
     "fflate": "^0.8.3",
     "firebase-admin": "^14.5.1",
     "firebase-tools": "^15.37.0",
+    "json5": "^2.2.3",
     "typescript": "^5.9.3",
     "vite": "^8.3.8",
     "vitest": "^5.1.1"

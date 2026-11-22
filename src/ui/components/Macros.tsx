@@ -1,4 +1,5 @@
 import { fmt, type Nutrients } from '../../domain/nutrients';
+import { t } from '../../i18n';
 
 export function Ring({ value, target, burned = 0 }: { value: number; target: number; burned?: number }) {
   const r = 56;
@@ -19,7 +20,7 @@ export function Ring({ value, target, burned = 0 }: { value: number; target: num
       </svg>
       <div className="center">
         <div className="big-num num">{Math.abs(remaining)}</div>
-        <div className="tiny muted">{over ? 'kcal over' : 'kcal left'}</div>
+        <div className="tiny muted">{over ? t('kcal over') : t('kcal left')}</div>
       </div>
     </div>
   );

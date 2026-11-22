@@ -1,7 +1,8 @@
 import { NUTRIENTS, fmt, type NutrientGroup, type Nutrients } from '../../domain/nutrients';
+import { t } from '../../i18n';
 
 const GROUP_LABEL: Record<NutrientGroup, string> = {
-  energy: 'Energy', macro: 'Macronutrients', detail: 'Fats, sugars & fiber', mineral: 'Minerals', vitamin: 'Vitamins', other: 'Other',
+  energy: t('Energy'), macro: t('Macronutrients'), detail: t('Fats, sugars & fiber'), mineral: t('Minerals'), vitamin: t('Vitamins'), other: t('Other'),
 };
 
 export function NutrientTable({ n, showEmpty = false }: { n: Nutrients; showEmpty?: boolean }) {

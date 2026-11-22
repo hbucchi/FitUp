@@ -8,15 +8,16 @@ import { MEAL_LABEL, SYMPTOM_KINDS } from '../../domain/types';
 import { checkInSummary } from './CheckIn';
 import { fmt } from '../../domain/nutrients';
 import { useExercises } from './TrainingLog';
+import { t } from '../../i18n';
 
 const TOOL_LABEL: Record<string, (i: any) => string> = {
-  search_foods: (i) => `Searching foods for “${i.query}”`,
-  log_food: (i) => `Logging ${i.quantity} ${i.unit === 'g' ? 'g' : `× ${i.unit}`}`,
-  create_food: (i) => `Creating “${i.name}” (estimate)`,
-  search_exercises: (i) => `Searching exercises for “${i.query}”`,
-  log_training: () => 'Logging training',
-  log_checkin: () => 'Logging check-in',
-  log_symptom: (i) => `Logging ${String(i.kind ?? 'symptom')}`,
+  search_foods: (i) => t('Searching foods for “{q}”', { q: i.query }),
+  log_food: (i) => t('Logging {amount}', { amount: `${i.quantity} ${i.unit === 'g' ? 'g' : `× ${i.unit}`}` }),
+  create_food: (i) => t('Creating “{name}” (estimate)', { name: i.name }),
+  search_exercises: (i) => t('Searching exercises for “{q}”', { q: i.query }),
+  log_training: () => t('Logging training'),
+  log_checkin: () => t('Logging check-in'),
+  log_symptom: (i) => t('Logging {what}', { what: t(SYMPTOM_KINDS[i.kind as keyof typeof SYMPTOM_KINDS] ?? 'symptom').toLowerCase() }),
 };
 
 export function AgentRun({ text, date, onDone }: { text: string; date: string; onDone: () => void }) {
@@ -47,7 +48,7 @@ export function AgentRun({ text, date, onDone }: { text: string; date: string; o
     })
       .then(() => setStatus('done'))
       .catch((e: Error) => {
-        setError(e.message.includes('Failed to fetch') ? 'Could not reach the AI service. Check your connection.' : e.message);
+        setError(e.message.includes('Failed to fetch') ? t('Could not reach the AI service. Check your connection.') : e.message);
         setStatus('error');
         setLogged([...ctx.logged]);
       });
@@ -70,12 +71,12 @@ export function AgentRun({ text, date, onDone }: { text: string; date: string; o
     <div className="stack">
       <p className="said" style={{ margin: 0 }}>“{text}”</p>
       <div className="card" style={{ marginBottom: 0 }}>
-        <div className="eyebrow" style={{ marginBottom: 8 }}>{status === 'running' ? 'Working…' : 'Steps'}</div>
+        <div className="eyebrow" style={{ marginBottom: 8 }}>{status === 'running' ? t('Working…') : t('Steps')}</div>
         <ul className="list small">
           {steps.map((s, i) => (
             <li key={i} style={{ padding: '3px 0', color: s.ok ? 'var(--ink-2)' : 'var(--danger)' }}>
               {s.ok ? '✓' : '↻'} {(TOOL_LABEL[s.name] ?? (() => s.name))(s.input)}
-              {!s.ok && <span className="tiny"> — retrying</span>}
+              {!s.ok && <span className="tiny"> {t('— retrying')}</span>}
             </li>
           ))}
           {status === 'running' && <li className="muted" style={{ padding: '3px 0' }}>…</li>}
@@ -84,7 +85,7 @@ export function AgentRun({ text, date, onDone }: { text: string; date: string; o
       {error && <div className="error">{error}</div>}
       {logged.length > 0 && (
         <div className="card flush" style={{ marginBottom: 0 }}>
-          <div className="meal-head"><h3 className="h-section">Logged</h3></div>
+          <div className="meal-head"><h3 className="h-section">{t('Logged')}</h3></div>
           <ul className="list">
             {logged.map((it) => {
               const gone = undone.has(it.entry.id);
@@ -98,22 +99,22 @@ export function AgentRun({ text, date, onDone }: { text: string; date: string; o
                       </>
                     ) : it.kind === 'training' ? (
                       <>
-                        <div className="title">{it.entry.exerciseName}</div>
-                        <div className="sub">Training · {it.entry.durationMin} min · {it.entry.kcal} kcal</div>
+                        <div className="title">{t(it.entry.exerciseName)}</div>
+                        <div className="sub">{t('Training')} · {it.entry.durationMin} min · {it.entry.kcal} kcal</div>
                       </>
                     ) : it.kind === 'symptom' ? (
                       <>
-                        <div className="title">{SYMPTOM_KINDS[it.entry.kind]}{it.entry.bodyPart ? ` · ${it.entry.bodyPart}` : ''}</div>
-                        <div className="sub">Severity {it.entry.severity}/5{it.entry.time ? ` · ${it.entry.time}` : ''}</div>
+                        <div className="title">{t(SYMPTOM_KINDS[it.entry.kind])}{it.entry.bodyPart ? ` · ${it.entry.bodyPart}` : ''}</div>
+                        <div className="sub">{t('Severity')} {it.entry.severity}/5{it.entry.time ? ` · ${it.entry.time}` : ''}</div>
                       </>
                     ) : (
                       <>
-                        <div className="title">Check-in</div>
+                        <div className="title">{t('Check-in')}</div>
                         <div className="sub">{checkInSummary(it.entry)}</div>
                       </>
                     )}
                   </div>
-                  {gone ? <span className="tiny muted">Removed</span> : <button className="btn ghost" onClick={() => undo(it)}>Undo</button>}
+                  {gone ? <span className="tiny muted">{t('Removed')}</span> : <button className="btn ghost" onClick={() => undo(it)}>{t('Undo')}</button>}
                 </li>
               );
             })}
@@ -121,7 +122,7 @@ export function AgentRun({ text, date, onDone }: { text: string; date: string; o
         </div>
       )}
       {summary && <div className="notice" style={{ whiteSpace: 'pre-wrap' }}>{summary}</div>}
-      {status !== 'running' && <button className="btn primary block" onClick={onDone}>Done</button>}
+      {status !== 'running' && <button className="btn primary block" onClick={onDone}>{t('Done')}</button>}
     </div>
   );
 }

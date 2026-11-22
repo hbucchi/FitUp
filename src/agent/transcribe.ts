@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 /**
  * Audio → text. Claude's API takes text and images but not audio, so recorded or uploaded
  * voice notes are transcribed first by one of these services.
@@ -37,7 +38,7 @@ export async function transcribeAudio(blob: Blob, cfg: TranscribeConfig, signal?
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
     const detail = json?.error?.message ?? json?.detail?.message ?? (typeof json?.detail === 'string' ? json.detail : null);
-    throw new Error(detail ?? `Transcription failed (HTTP ${res.status})`);
+    throw new Error(detail ?? t('Transcription failed (HTTP {s})', { s: res.status }));
   }
   return String(json.text ?? '').trim();
 }

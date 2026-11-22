@@ -18,7 +18,7 @@ export interface MatchResult {
 }
 
 export function matchTranscript(transcript: string, index: SearchIndex, opts: SearchOptions = {}): MatchResult {
-  const parsed = parseUtterance(transcript);
+  const parsed = parseUtterance(transcript, opts.lang);
   return {
     transcript,
     meal: parsed.meal,

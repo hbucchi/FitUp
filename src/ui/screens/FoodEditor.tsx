@@ -3,10 +3,11 @@ import type { Food } from '../../domain/types';
 import { NUTRIENTS, type NutrientKey, type Nutrients } from '../../domain/nutrients';
 import { uid, useStore } from '../../data/store';
 import { NumberField, Segmented } from '../components/Fields';
+import { t } from '../../i18n';
 
 const MACROS: NutrientKey[] = ['kcal', 'protein', 'carbs', 'fat'];
 
-export function FoodEditor({ initial, onSaved }: { initial?: Food; onSaved: (f: Food) => void }) {
+export function FoodEditor({ initial, onSaved, barcode }: { initial?: Food; onSaved: (f: Food) => void; barcode?: string }) {
   const save = useStore((s) => s.saveCustomFood);
   const serving0 = initial?.portions[0];
   const [name, setName] = useState(initial?.name ?? '');
@@ -25,9 +26,9 @@ export function FoodEditor({ initial, onSaved }: { initial?: Food; onSaved: (f: 
   const [err, setErr] = useState<string | null>(null);
 
   const submit = () => {
-    if (!name.trim()) return setErr('Give the food a name.');
-    if (basis === 'serving' && (!servingGrams || servingGrams <= 0)) return setErr('Enter the serving size in grams.');
-    if (values.kcal === '' || values.kcal == null) return setErr('Energy (kcal) is required.');
+    if (!name.trim()) return setErr(t('Give the food a name.'));
+    if (basis === 'serving' && (!servingGrams || servingGrams <= 0)) return setErr(t('Enter the serving size in grams.'));
+    if (values.kcal === '' || values.kcal == null) return setErr(t('Energy (kcal) is required.'));
     const factor = basis === 'serving' ? 100 / Number(servingGrams) : 1;
     const nutrients: Nutrients = {};
     for (const d of NUTRIENTS) {
@@ -43,6 +44,7 @@ export function FoodEditor({ initial, onSaved }: { initial?: Food; onSaved: (f: 
       source: 'Custom',
       nutrients,
       portions: [...portions, ...(initial?.portions.slice(1) ?? [])],
+      ...((barcode ?? initial?.barcode) && { barcode: barcode ?? initial?.barcode }),
     };
     save(food);
     onSaved(food);
@@ -57,27 +59,27 @@ export function FoodEditor({ initial, onSaved }: { initial?: Food; onSaved: (f: 
 
   return (
     <div className="stack">
-      <label className="field">Name<input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Grandma's lentil soup" /></label>
-      <label className="field">Brand <span className="muted">(optional)</span><input className="input" value={brand} onChange={(e) => setBrand(e.target.value)} /></label>
+      <label className="field">{t('Name')}<input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('e.g. Grandma\'s lentil soup')} /></label>
+      <label className="field">{t('Brand')} <span className="muted">({t('optional')})</span><input className="input" value={brand} onChange={(e) => setBrand(e.target.value)} /></label>
       <div className="field">
-        <span>Values are given</span>
-        <Segmented value={basis} onChange={setBasis} label="Nutrient basis"
-          options={[{ value: 'serving', label: 'Per serving' }, { value: '100g', label: 'Per 100 g' }]} />
+        <span>{t('Values are given')}</span>
+        <Segmented value={basis} onChange={setBasis} label={t('Nutrient basis')}
+          options={[{ value: 'serving', label: t('Per serving') }, { value: '100g', label: t('Per 100 g') }]} />
       </div>
       {basis === 'serving' && (
         <div className="grid2">
-          <label className="field">Serving name<input className="input" value={servingLabel} onChange={(e) => setServingLabel(e.target.value)} placeholder="bar, bowl, scoop…" /></label>
-          <NumberField label="Serving size" suffix="g" value={servingGrams} onChange={setServingGrams} />
+          <label className="field">{t('Serving name')}<input className="input" value={servingLabel} onChange={(e) => setServingLabel(e.target.value)} placeholder={t('bar, bowl, scoop…')} /></label>
+          <NumberField label={t('Serving size')} suffix="g" value={servingGrams} onChange={setServingGrams} />
         </div>
       )}
-      <div className="eyebrow">Macronutrients</div>
+      <div className="eyebrow">{t('Macronutrients')}</div>
       <div className="grid2">{MACROS.map(field)}</div>
       <button type="button" className="btn ghost" style={{ alignSelf: 'flex-start', paddingLeft: 0 }} onClick={() => setShowMicros((s) => !s)}>
-        {showMicros ? 'Hide' : 'Add'} fiber, sugars, vitamins & minerals
+        {showMicros ? t('Hide fiber, sugars, vitamins & minerals') : t('Add fiber, sugars, vitamins & minerals')}
       </button>
       {showMicros && <div className="grid2">{NUTRIENTS.filter((d) => !MACROS.includes(d.key)).map((d) => field(d.key))}</div>}
       {err && <div className="error">{err}</div>}
-      <button className="btn primary block" onClick={submit}>{initial ? 'Save food' : 'Create food'}</button>
+      <button className="btn primary block" onClick={submit}>{initial ? t('Save food') : t('Create food')}</button>
     </div>
   );
 }

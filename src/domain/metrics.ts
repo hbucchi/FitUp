@@ -1,4 +1,5 @@
 import type { ActivityLevel, Goal, Profile, Sex } from './types';
+import { t } from '../i18n';
 
 /**
  * Body-composition maths.
@@ -19,17 +20,17 @@ export const ACTIVITY_FACTOR: Record<ActivityLevel, number> = {
 };
 
 export const ACTIVITY_LABEL: Record<ActivityLevel, string> = {
-  sedentary: 'Sedentary — desk job, little exercise',
-  light: 'Light — training 1–3×/week',
-  moderate: 'Moderate — training 3–5×/week',
-  active: 'Active — training 6–7×/week',
-  athlete: 'Athlete — twice a day or physical job',
+  sedentary: t('Sedentary — desk job, little exercise'),
+  light: t('Light — training 1–3×/week'),
+  moderate: t('Moderate — training 3–5×/week'),
+  active: t('Active — training 6–7×/week'),
+  athlete: t('Athlete — twice a day or physical job'),
 };
 
 export const GOAL_LABEL: Record<Goal, string> = {
-  cut: 'Lean out — lose fat, keep muscle',
-  recomp: 'Recomposition — build muscle at maintenance',
-  build: 'Build — gain muscle with a small surplus',
+  cut: t('Lean out — lose fat, keep muscle'),
+  recomp: t('Recomposition — build muscle at maintenance'),
+  build: t('Build — gain muscle with a small surplus'),
 };
 
 const GOAL_KCAL_DELTA: Record<Goal, number> = { cut: -0.2, recomp: 0, build: 0.1 };

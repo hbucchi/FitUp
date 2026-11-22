@@ -7,12 +7,13 @@ import { programById, rebuildFrom, type WeekOption } from '../../domain/programs
 import { prettyDate, todayISO } from '../../domain/dates';
 import { uid, useStore } from '../../data/store';
 import { Sheet } from '../components/Sheet';
+import { t } from '../../i18n';
 
 const STEP: Record<string, (i: any) => string> = {
-  choose_week: (i) => `Choosing next week: ${i.option_id}`,
-  reschedule_session: (i) => `Moving a session to ${i.new_date}`,
-  skip_session: () => 'Skipping a session',
-  set_nutrition_targets: () => 'Adjusting nutrition targets',
+  choose_week: () => t('Choosing next week'),
+  reschedule_session: (i) => t('Moving a session to {date}', { date: i.new_date }),
+  skip_session: () => t('Skipping a session'),
+  set_nutrition_targets: () => t('Adjusting nutrition targets'),
 };
 
 export function ReviewSheet({ onClose }: { onClose: () => void }) {
@@ -48,7 +49,7 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
       coachReview(cfg, input, (e) => setEvents((x) => [...x, e]))
         .then(apply)
         .catch((e: Error) => {
-          setError(`The assistant couldn't run (${e.message}). Applied the rule-based update instead.`);
+          setError(t('The assistant couldn’t run ({msg}). Applied the rule-based update instead.', { msg: e.message }));
           apply(rulesReview(input));
         });
     } else apply(rulesReview(input));
@@ -60,7 +61,7 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
     const plan = useStore.getState().activePlan;
     const program = plan && programById(plan.programId);
     if (!plan || !program || !result?.week) return;
-    const r = rebuildFrom(program, plan, { ...o.choice, by: 'you', reason: 'Chosen by you' });
+    const r = rebuildFrom(program, plan, { ...o.choice, by: 'you', reason: t('Chosen by you') });
     s.replacePlanFrom(r.plan, result.week.fromWeek, r.sessions);
     setChosen(o.id);
   };
@@ -77,12 +78,12 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
   const steps = events.filter((e): e is Extract<AgentEvent, { type: 'tool' }> => e.type === 'tool');
   const decision = result?.week?.decision;
   return (
-    <Sheet title="Update plan" onClose={onClose} footer={result ? <button className="btn primary block" onClick={onClose}>Done</button> : undefined}>
+    <Sheet title={t('Update plan')} onClose={onClose} footer={result ? <button className="btn primary block" onClick={onClose}>{t('Done')}</button> : undefined}>
       <div className="stack">
-        <div className="tiny muted">{cfg ? `${settings.provider === 'anthropic' ? 'Claude' : 'OpenAI'} coach` : 'Rule-based'} · last 15 days</div>
+        <div className="tiny muted">{cfg ? t('{who} coach', { who: settings.provider === 'anthropic' ? 'Claude' : 'OpenAI' }) : t('Rule-based')} · {t('last 15 days')}</div>
         {!result && (
           <div className="card" style={{ marginBottom: 0 }}>
-            <div className="eyebrow" style={{ marginBottom: 6 }}>Reviewing…</div>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>{t('Reviewing…')}</div>
             <ul className="list small">
               {steps.map((st, i) => (
                 <li key={i} style={{ padding: '2px 0', color: st.ok ? 'var(--ink-2)' : 'var(--danger)' }}>
@@ -96,14 +97,14 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
         {error && <div className="error">{error}</div>}
         {decision && !undone && (
           <div className="card" style={{ marginBottom: 0 }}>
-            <div className="eyebrow">Week {decision.week} · from {prettyDate(decision.startDate)} · {decision.by === 'assistant' ? 'coach' : 'rules'}</div>
+            <div className="eyebrow">{t('Week {n} · from {d}', { n: decision.week, d: prettyDate(decision.startDate) })} · {decision.by === 'assistant' ? t('coach') : t('rules')}</div>
             <div className="h-section" style={{ marginTop: 2 }}>{decision.options.find((o) => o.id === chosen)?.title}</div>
-            <p className="small muted" style={{ margin: '4px 0 10px' }}>{chosen === decision.chosen.id ? decision.reason : 'Your choice.'}</p>
+            <p className="small muted" style={{ margin: '4px 0 10px' }}>{chosen === decision.chosen.id ? decision.reason : t('Your choice.')}</p>
             <div className="stack" style={{ gap: 6 }}>
               {decision.options.map((o) => (
                 <button key={o.id} className="chip" aria-pressed={o.id === chosen} style={{ textAlign: 'left', borderRadius: 12, padding: '8px 12px' }} onClick={() => override(o)}>
                   <strong>{o.title}</strong>
-                  <div className="tiny muted">{o.sessions} sessions · ~{Math.round(o.minutes / 5) * 5} min</div>
+                  <div className="tiny muted">{t('{n} sessions', { n: o.sessions })} · ~{Math.round(o.minutes / 5) * 5} min</div>
                 </button>
               ))}
             </div>
@@ -113,14 +114,14 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
           <>
             {result.changes.length > 0 && (
               <div className="card flush" style={{ marginBottom: 0 }}>
-                <div className="meal-head"><h3 className="h-section">{undone ? 'Changes undone' : 'Changes'}</h3></div>
+                <div className="meal-head"><h3 className="h-section">{undone ? t('Changes undone') : t('Changes')}</h3></div>
                 <ul className="list">
                   {result.changes.map((c, i) => <li key={i} className="list-item small" style={{ opacity: undone ? 0.5 : 1 }}>{c}</li>)}
                 </ul>
               </div>
             )}
             {result.summary && <div className="notice small" style={{ whiteSpace: 'pre-wrap' }}>{result.summary}</div>}
-            {!undone && (result.changes.length > 0 || result.week) && <button className="btn ghost block" onClick={undo}>Undo this update</button>}
+            {!undone && (result.changes.length > 0 || result.week) && <button className="btn ghost block" onClick={undo}>{t('Undo this update')}</button>}
           </>
         )}
       </div>

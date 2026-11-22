@@ -1,4 +1,5 @@
 import type { Exercise } from './types';
+import { t } from '../i18n';
 
 /**
  * Seed exercise library.
@@ -144,9 +145,9 @@ export const SEED_EXERCISES: Exercise[] = [
 ];
 
 export const INTENSITY = {
-  light: { label: 'Light', factor: 0.75 },
-  moderate: { label: 'Moderate', factor: 1 },
-  vigorous: { label: 'Vigorous', factor: 1.3 },
+  light: { label: t('Light'), factor: 0.75 },
+  moderate: { label: t('Moderate'), factor: 1 },
+  vigorous: { label: t('Vigorous'), factor: 1.3 },
 } as const;
 export type Intensity = keyof typeof INTENSITY;
 

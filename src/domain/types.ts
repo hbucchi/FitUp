@@ -1,4 +1,5 @@
 import type { Nutrients } from './nutrients';
+import { t } from '../i18n';
 
 export type Sex = 'male' | 'female';
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'athlete';
@@ -76,18 +77,22 @@ export interface Food {
   /** per 100 g */
   nutrients: Nutrients;
   portions: Portion[];
+  /** EAN/UPC for packaged products */
+  barcode?: string;
+  /** how a calculated recipe was built */
+  recipe?: string;
 }
 
 export const MEALS = ['breakfast', 'lunch', 'dinner', 'snack', 'pre-workout', 'post-workout'] as const;
 export type Meal = (typeof MEALS)[number];
 
 export const MEAL_LABEL: Record<Meal, string> = {
-  breakfast: 'Breakfast',
-  lunch: 'Lunch',
-  dinner: 'Dinner',
-  snack: 'Snacks',
-  'pre-workout': 'Pre-workout',
-  'post-workout': 'Post-workout',
+  breakfast: t('Breakfast'),
+  lunch: t('Lunch'),
+  dinner: t('Dinner'),
+  snack: t('Snacks'),
+  'pre-workout': t('Pre-workout'),
+  'post-workout': t('Post-workout'),
 };
 
 export interface FoodEntry {

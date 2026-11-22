@@ -9,6 +9,7 @@ import { todayISO } from '../../domain/dates';
 import { useStore } from '../../data/store';
 import { Sheet } from '../components/Sheet';
 import { NumberField, Segmented } from '../components/Fields';
+import { t } from '../../i18n';
 
 export function ObjectiveSheet({ onClose, onDone }: { onClose: () => void; onDone?: () => void }) {
   const s = useStore();
@@ -40,35 +41,35 @@ export function ObjectiveSheet({ onClose, onDone }: { onClose: () => void; onDon
   };
 
   return (
-    <Sheet title="Your objective" onClose={onClose} footer={<button className="btn primary block" disabled={!valid} onClick={save}>Set objective</button>}>
+    <Sheet title={t('Your objective')} onClose={onClose} footer={<button className="btn primary block" disabled={!valid} onClick={save}>{t('Set objective')}</button>}>
       <div className="stack">
-        <p className="small muted" style={{ margin: 0 }}>Default: the classical physique.</p>
+        <p className="small muted" style={{ margin: 0 }}>{t('Default: the classical physique.')}</p>
         <div className="field">
-          <span>Training experience</span>
-          <Segmented<Experience> value={experience} onChange={setExperience} label="Experience"
-            options={[{ value: 'novice', label: '< 1 year' }, { value: 'intermediate', label: '1–3 years' }, { value: 'advanced', label: '3+ years' }]} />
+          <span>{t('Training experience')}</span>
+          <Segmented<Experience> value={experience} onChange={setExperience} label={t('Experience')}
+            options={[{ value: 'novice', label: t('< 1 year') }, { value: 'intermediate', label: t('1–3 years') }, { value: 'advanced', label: t('3+ years') }]} />
         </div>
         <div className="grid2">
-          <NumberField label="Target body fat" suffix="%" value={bf} onChange={setBf} />
-          <NumberField label="Target FFMI (normalised)" value={ffmi} onChange={setFfmi} />
+          <NumberField label={t('Target body fat')} suffix="%" value={bf} onChange={setBf} />
+          <NumberField label={t('Target FFMI (normalised)')} value={ffmi} onChange={setFfmi} />
         </div>
-        <p className="tiny muted" style={{ margin: '-4px 0 0' }}>FFMI = muscularity. You're at {fmt(m.ffmiNormalized, 1)}.</p>
+        <p className="tiny muted" style={{ margin: '-4px 0 0' }}>{t("FFMI = muscularity. You're at {n}.", { n: fmt(m.ffmiNormalized, 1) })}</p>
         {target && timeline && (
           <div className="card" style={{ marginBottom: 0 }}>
             <div className="grid2">
-              <div className="stat"><div className="k">Target weight</div><div className="v">{fmt(target.weightKg, 1)} kg</div></div>
-              <div className="stat"><div className="k">Target lean mass</div><div className="v">{fmt(target.leanKg, 1)} kg</div></div>
-              <div className="stat"><div className="k">Lean mass to build</div><div className="v">{fmt(leanToGain, 1)} kg</div></div>
-              <div className="stat"><div className="k">Fat to lose</div><div className="v">{fmt(fatToLose, 1)} kg</div></div>
+              <div className="stat"><div className="k">{t('Target weight')}</div><div className="v">{fmt(target.weightKg, 1)} kg</div></div>
+              <div className="stat"><div className="k">{t('Target lean mass')}</div><div className="v">{fmt(target.leanKg, 1)} kg</div></div>
+              <div className="stat"><div className="k">{t('Lean mass to build')}</div><div className="v">{fmt(leanToGain, 1)} kg</div></div>
+              <div className="stat"><div className="k">{t('Fat to lose')}</div><div className="v">{fmt(fatToLose, 1)} kg</div></div>
             </div>
             <div className="divider" />
-            <div className="small"><strong>Start with:</strong> {GOAL_LABEL[phase]}</div>
+            <div className="small"><strong>{t('Start with:')}</strong> {GOAL_LABEL[phase]}</div>
             <div className="small" style={{ marginTop: 4 }}>
-              <strong>Estimate:</strong> ~{months} month{months > 1 ? 's' : ''}
+              <strong>{t('Estimate:')}</strong> ~{months > 1 ? t('{n} months', { n: months }) : t('1 month')}
             </div>
           </div>
         )}
-        {!valid && <div className="error">Body fat {p.sex === 'female' ? '12' : '6'}–35 %, FFMI 16–26.</div>}
+        {!valid && <div className="error">{t('Body fat {min}–35 %, FFMI 16–26.', { min: p.sex === 'female' ? 12 : 6 })}</div>}
       </div>
     </Sheet>
   );

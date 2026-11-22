@@ -2,38 +2,46 @@ import type { Food, Portion } from './types';
 
 /**
  * Converts "quantity + unit" into grams for a given food,
- * using the food's own USDA household measures whenever possible.
+ * using the food's own household measures whenever possible —
+ * USDA ("cup", "slice", "large") or the IBGE measures that come with TACO
+ * ("colher de sopa", "concha", "unidade").
  */
 
 const MASS: Record<string, number> = { g: 1, kg: 1000, mg: 0.001, oz: 28.3495, lb: 453.592 };
-const ML: Record<string, number> = { ml: 1, l: 1000, cup: 240, glass: 250, tbsp: 15, tsp: 5 };
+// ladle (concha) ≈ 130 ml and dessert spoon (colher de sobremesa) ≈ 10 ml — Brazilian household averages
+const ML: Record<string, number> = { ml: 1, l: 1000, cup: 240, glass: 250, tbsp: 15, tsp: 5, dsp: 10, ladle: 130 };
 
 const UNIT_ALIASES: Record<string, string[]> = {
-  cup: ['cup'],
-  glass: ['cup', 'fl oz'],
-  tbsp: ['tbsp', 'tablespoon'],
-  tsp: ['tsp', 'teaspoon'],
-  slice: ['slice'],
-  piece: ['piece', 'item', 'each', 'unit'],
+  cup: ['cup', 'xícara de chá', 'xícara', 'caneca'],
+  glass: ['cup', 'fl oz', 'copo americano', 'copo médio', 'copo'],
+  tbsp: ['tbsp', 'tablespoon', 'colher de sopa'],
+  tsp: ['tsp', 'teaspoon', 'colher de chá'],
+  dsp: ['colher de sobremesa'],
+  servingspoon: ['colher de arroz', 'colher de servir'],
+  ladle: ['concha'],
+  skimmer: ['escumadeira'],
+  slice: ['slice', 'fatia', 'rodela'],
+  piece: ['piece', 'item', 'each', 'unit', 'unidade', 'pedaço'],
   scoop: ['scoop'],
-  serving: ['serving', 'nlea'],
-  bowl: ['cup', 'serving'],
-  plate: ['serving'],
-  can: ['can'],
-  bar: ['bar'],
-  fillet: ['fillet'],
-  breast: ['breast', 'half breast'],
-  large: ['large', 'extra large'],
-  medium: ['medium'],
-  small: ['small'],
+  serving: ['serving', 'nlea', 'porção'],
+  bowl: ['cup', 'serving', 'prato fundo'],
+  plate: ['serving', 'prato raso', 'prato fundo'],
+  can: ['can', 'lata'],
+  bar: ['bar', 'unidade'],
+  handful: ['handful', 'punhado'],
+  fillet: ['fillet', 'filé', 'bife', 'unidade'],
+  breast: ['breast', 'half breast', 'filé', 'unidade'],
+  large: ['large', 'extra large', 'unidade grande', 'unidade'],
+  medium: ['medium', 'unidade média', 'unidade'],
+  small: ['small', 'unidade pequena', 'unidade'],
 };
 
 /** Portions that describe "one of the thing" — used when someone says "two eggs". */
-const COUNT_HINTS = ['large', 'medium', 'whole', 'fruit', 'each', 'piece', 'item', 'egg', 'unit', 'slice', 'breast', 'fillet', 'small', 'bar', 'cookie', 'muffin'];
+const COUNT_HINTS = ['unidade', 'large', 'medium', 'whole', 'fruit', 'each', 'piece', 'item', 'egg', 'unit', 'slice', 'breast', 'fillet', 'small', 'bar', 'cookie', 'muffin'];
 
 const BOWL_MULTIPLIER = 1.5; // a bowl ≈ 1.5 cups
 
-const MEASURE_PREFIX = /^(cup|tbsp|tablespoon|tsp|teaspoon|oz|fl oz|lb|container|package|can|jar|serving)\b/i;
+const MEASURE_PREFIX = /^(cup|tbsp|tablespoon|tsp|teaspoon|oz|fl oz|lb|container|package|can|jar|serving|colher|xícara|copo|concha|prato|porção|escumadeira|lata)(?![a-zà-ú])/i;
 
 function findPortion(food: Food, words: string[]): Portion | undefined {
   const lower = food.portions.map((p) => ({ p, l: p.label.toLowerCase() }));
@@ -64,7 +72,7 @@ export function cupGrams(food: Food): number | undefined {
 
 export function countPortion(food: Food): Portion | undefined {
   // 1) a bare size label ("large" for eggs is the USDA standard unit)
-  for (const exact of ['large', 'medium', 'each', 'piece', 'item', 'slice']) {
+  for (const exact of ['large', 'medium', 'each', 'piece', 'item', 'slice', 'unidade', 'fatia', 'filé', 'bife']) {
     const p = food.portions.find((x) => x.label.toLowerCase() === exact);
     if (p) return p;
   }

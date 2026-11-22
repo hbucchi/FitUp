@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { executeTool, systemPrompt, TOOLS, ToolError, type AgentContext, type ToolDef } from './tools';
 import type { AgentProvider } from './settings';
 
@@ -39,7 +40,7 @@ async function post(url: string, headers: Record<string, string>, body: unknown,
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
     const msg = json?.error?.message ?? `HTTP ${res.status}`;
-    throw new Error(res.status === 401 ? `The API key was rejected (${msg}).` : msg);
+    throw new Error(res.status === 401 ? t('The API key was rejected ({msg}).', { msg }) : msg);
   }
   return json;
 }
@@ -74,7 +75,7 @@ async function runAnthropic(cfg: AgentConfig, task: AgentTask, onEvent: (e: Agen
       }),
     });
   }
-  throw new Error('The assistant took too many steps and was stopped.');
+  throw new Error(t('The assistant took too many steps and was stopped.'));
 }
 
 /** OpenAI — Chat Completions with function calling. */
@@ -84,7 +85,7 @@ async function runOpenAI(cfg: AgentConfig, task: AgentTask, onEvent: (e: AgentEv
   for (let step = 0; step < MAX_STEPS; step++) {
     const res = await post('https://api.openai.com/v1/chat/completions', { authorization: `Bearer ${cfg.apiKey}` }, { model: cfg.model, messages, tools }, signal);
     const msg = res.choices?.[0]?.message;
-    if (!msg) throw new Error('Empty response from OpenAI.');
+    if (!msg) throw new Error(t('Empty response from OpenAI.'));
     messages.push(msg);
     const calls: any[] = msg.tool_calls ?? [];
     if (calls.length === 0) {
@@ -103,7 +104,7 @@ async function runOpenAI(cfg: AgentConfig, task: AgentTask, onEvent: (e: AgentEv
       messages.push({ role: 'tool', tool_call_id: c.id, content: r.content });
     }
   }
-  throw new Error('The assistant took too many steps and was stopped.');
+  throw new Error(t('The assistant took too many steps and was stopped.'));
 }
 
 export function runAgentTask(cfg: AgentConfig, task: AgentTask, onEvent: (e: AgentEvent) => void, signal?: AbortSignal) {

@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
 import { IconClose } from './Icons';
+import { t } from '../../i18n';
 
 export function Sheet({ title, onClose, children, footer, leading }: {
   title: string; onClose: () => void; children: ReactNode; footer?: ReactNode; leading?: ReactNode;
@@ -20,7 +21,7 @@ export function Sheet({ title, onClose, children, footer, leading }: {
         <div className="sheet-head">
           {leading}
           <h2>{title}</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="Close"><IconClose /></button>
+          <button className="icon-btn" onClick={onClose} aria-label={t('Close')}><IconClose /></button>
         </div>
         <div className="sheet-body">{children}</div>
         {footer && <div className="sheet-foot">{footer}</div>}

@@ -1,5 +1,6 @@
 import type { PlannedSession } from './types';
 import { addDays, weekday } from './programs';
+import { t } from '../i18n';
 
 /**
  * Rule-based weekly rescheduling (works without an AI key; also given to the AI coach as a baseline).
@@ -45,7 +46,7 @@ export function planWeek(
   // 1. stale misses from earlier weeks
   for (const s of sessions) {
     if (s.status === 'planned' && s.date < weekStart) {
-      changes.push({ sessionId: s.id, title: s.title, from: s.date, reason: 'Missed in an earlier week — closed so it doesn\'t pile up.' });
+      changes.push({ sessionId: s.id, title: s.title, from: s.date, reason: t('Missed in an earlier week — closed so it doesn\'t pile up.') });
     }
   }
 
@@ -86,11 +87,11 @@ export function planWeek(
   open.forEach((s, i) => {
     const to = chosen[i];
     if (!to) {
-      changes.push({ sessionId: s.id, title: s.title, from: s.date, reason: 'No days left this week — skipped. Next week starts fresh.' });
+      changes.push({ sessionId: s.id, title: s.title, from: s.date, reason: t('No days left this week — skipped. Next week starts fresh.') });
     } else if (to !== s.date) {
       changes.push({
         sessionId: s.id, title: s.title, from: s.date, to,
-        reason: s.date < firstDay ? 'Missed — moved to the next free day.' : 'Shifted to make room for a missed session.',
+        reason: s.date < firstDay ? t('Missed — moved to the next free day.') : t('Shifted to make room for a missed session.'),
       });
     }
   });

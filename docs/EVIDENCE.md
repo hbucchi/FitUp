@@ -38,6 +38,19 @@ This is coaching guidance, not medical advice.
 | Creatine monohydrate 3–5 g/day | Strong evidence for strength and training adaptations; safe long-term in healthy people. | Research: [Kreider et al. 2017 (ISSN position stand)](https://pubmed.ncbi.nlm.nih.gov/28615996/) |
 | No planned diet breaks | In resistance-trained adults, intermittent diet breaks didn't improve body composition versus continuous dieting. One-week breaks improved muscular endurance. | Research: [Peos et al. 2021 (ICECAP)](https://pubmed.ncbi.nlm.nih.gov/33587549/) |
 
+## Food data sources
+
+| Source | What it is | How reliable |
+|---|---|---|
+| USDA FoodData Central — Foundation + SR Legacy | Lab-analysed generic foods (US). Public domain. | Reference quality. SR Legacy is what most consumer apps use for generic foods. |
+| TACO 4ª ed. (NEPA/UNICAMP, 2011) | Brazilian Food Composition Table: 597 foods analysed in Brazil (feijão, arroz, mandioca, frutas…). Reproduction allowed with citation. | Reference quality. Trace amounts ("Tr") are stored as 0. A few foods have no energy or macros in the table (fluid cow's milk, salt) and are left out; USDA covers milk. |
+| IBGE POF 2008–2009 household measures | Grams per colher de sopa, concha, escumadeira, unidade… for each TACO food. | Official survey averages; your spoon may differ. |
+| Moqueca de peixe (receita calculada) | TACO has no moqueca. It is calculated from TACO ingredients: cação 800 g, tomate 300 g, cebola 200 g, pimentões 200 g, leite de coco 200 g, dendê 30 g, limão 30 g, with 10 % water lost in cooking. | An estimate for a typical Bahian recipe. TBCA (USP) has measured preparations but offers no download. |
+| USDA Branded Foods (barcode, US/Canada) | Nutrition facts submitted by manufacturers, by GTIN/UPC. | Label data, as reliable as the label (labels may round, and US rules allow ±20 %). |
+| Open Food Facts (barcode, everywhere else) | A crowd-sourced database of product labels, strong in Brazil and Europe. | Volunteer data. Usually right, but the app tells you to check it against the label. There is no open official barcode database for Brazil or Ireland. |
+
+The barcode number itself is checked before any lookup: the last digit of an EAN/UPC is a mod-10 checksum (digits weighted 3, 1, 3, 1… from the right). A camera misread almost always breaks it.
+
 ## Calories burned by exercise
 
 | Rule in the app | Why | Source |

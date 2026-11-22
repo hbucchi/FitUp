@@ -1,5 +1,6 @@
 import type { ActivePlan, CheckIn, PlannedSession, Symptom, TrainingEntry } from './types';
 import { addDays, planChoices, planWeekStart, weekStructure, type WeekOption } from './programs';
+import { t } from '../i18n';
 
 /**
  * Picking next week's (pre-designed) week from your recent history.
@@ -117,23 +118,23 @@ export function chooseByRules(options: WeekOption[], s: TrainingSignals): { opti
   const standard = get('standard')!;
   const pct = s.adherence != null ? Math.round(s.adherence * 100) : undefined;
   if (s.adherence != null && s.adherence < 0.5 && get('condensed'))
-    return { option: get('condensed')!, reason: `${s.done} of ${s.due} sessions done — a shorter week you can finish.` };
+    return { option: get('condensed')!, reason: t('{done} of {due} sessions done — a shorter week you can finish.', { done: s.done, due: s.due }) };
   if (s.adherence != null && s.adherence < 0.75 && get('repeat'))
-    return { option: get('repeat')!, reason: `${pct}% of sessions done — repeat before progressing.` };
+    return { option: get('repeat')!, reason: t('{pct}% of sessions done — repeat before progressing.', { pct: pct ?? 0 }) };
   if (s.recovery.poor && get('lighter')) {
     const r = s.recovery;
-    if (r.severePain) return { option: get('lighter')!, reason: `${r.severePain.bodyPart ? `${r.severePain.bodyPart} pain` : 'Pain'} rated ${r.severePain.severity}/5 — lighter week.` };
-    const why = (r.sleepAvg ?? 8) < 6 ? `sleep averaged ${r.sleepAvg!.toFixed(1)} h` : (r.energyAvg ?? 3) <= 2 ? 'energy has been low' : 'soreness has been high';
-    return { option: get('lighter')!, reason: `Recovery is low (${why}) — lighter week.` };
+    if (r.severePain) return { option: get('lighter')!, reason: r.severePain.bodyPart ? t('{part} pain rated {n}/5 — lighter week.', { part: r.severePain.bodyPart, n: r.severePain.severity }) : t('Pain rated {n}/5 — lighter week.', { n: r.severePain.severity }) };
+    const why = (r.sleepAvg ?? 8) < 6 ? t('sleep averaged {h} h', { h: r.sleepAvg!.toFixed(1) }) : (r.energyAvg ?? 3) <= 2 ? t('energy has been low') : t('soreness has been high');
+    return { option: get('lighter')!, reason: t('Recovery is low ({why}) — lighter week.', { why }) };
   }
   if (s.declined >= 2 && s.declined > s.improved && get('lighter'))
-    return { option: get('lighter')!, reason: `${s.declined} lifts went down — time to recover.` };
+    return { option: get('lighter')!, reason: t('{n} lifts went down — time to recover.', { n: s.declined }) };
   if (s.weeksSinceLighter >= 6 && get('lighter'))
-    return { option: get('lighter')!, reason: `${s.weeksSinceLighter} weeks without a break — time to recover.` };
+    return { option: get('lighter')!, reason: t('{n} weeks without a break — time to recover.', { n: s.weeksSinceLighter }) };
   if (get('skip-deload') && s.adherence != null && s.adherence >= 0.9 && s.improved >= 2 && s.declined === 0 && !s.recovery.poor)
-    return { option: get('skip-deload')!, reason: `Strong weeks — no break needed.` };
+    return { option: get('skip-deload')!, reason: t('Strong weeks — no break needed.') };
   return {
     option: standard,
-    reason: s.adherence == null ? 'Following the plan.' : `${pct}% of sessions done — keep progressing.`,
+    reason: s.adherence == null ? t('Following the plan.') : t('{pct}% of sessions done — keep progressing.', { pct: pct ?? 0 }),
   };
 }

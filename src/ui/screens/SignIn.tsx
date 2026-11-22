@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { signInWithGoogle } from '../../firebase/auth';
 import { Logo } from '../components/Logo';
+import { t } from '../../i18n';
 
 export function SignIn({ onLocal }: { onLocal: () => void }) {
   const [busy, setBusy] = useState(false);
@@ -9,8 +10,8 @@ export function SignIn({ onLocal }: { onLocal: () => void }) {
     <div className="app">
       <div className="hero">
         <div className="mark"><Logo size={64} /></div>
-        <div className="brand-name" style={{ fontSize: 30 }}>Micenae</div>
-        <p>Training and nutrition, measured with care — towards the classical physique.</p>
+        <div className="brand-name" style={{ fontSize: 30 }}>{t('Micenae')}</div>
+        <p>{t('Training and nutrition, measured with care — towards the classical physique.')}</p>
       </div>
       <div className="meander" />
       <div className="card stack">
@@ -25,11 +26,11 @@ export function SignIn({ onLocal }: { onLocal: () => void }) {
             setBusy(false);
           }
         }}>
-          <GoogleMark /> {busy ? 'Signing in…' : 'Continue with Google'}
+          <GoogleMark /> {busy ? t('Signing in…') : t('Continue with Google')}
         </button>
         {error && <div className="error">{error}</div>}
       </div>
-      <button className="btn ghost block small" onClick={onLocal}>Continue without an account (this device only)</button>
+      <button className="btn ghost block small" onClick={onLocal}>{t('Continue without an account (this device only)')}</button>
     </div>
   );
 }

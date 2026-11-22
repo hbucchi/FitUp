@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Transcriber, TranscribeConfig } from './transcribe';
+import { t } from '../i18n';
 
 export type AgentProvider = 'anthropic' | 'openai';
 
@@ -20,9 +21,9 @@ export interface AssistantSettings {
 }
 
 export const ANTHROPIC_MODELS = [
-  { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5 — balanced (recommended)' },
-  { id: 'claude-opus-5-5', label: 'Claude Opus 5.5 — most capable' },
-  { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5 — fastest, cheapest' },
+  { id: 'claude-sonnet-5-5', label: `Claude Sonnet 5.5 — ${t('balanced (recommended)')}` },
+  { id: 'claude-opus-5-5', label: `Claude Opus 5.5 — ${t('most capable')}` },
+  { id: 'claude-haiku-5-5', label: `Claude Haiku 5.5 — ${t('fastest, cheapest')}` },
 ];
 
 /**

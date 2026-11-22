@@ -16,6 +16,7 @@ import { useAuthUser } from './firebase/auth';
 import { db, PREVIEW } from './firebase/app';
 import { startSync, type SyncStatus } from './firebase/sync';
 import { useSession } from './firebase/session';
+import { t } from './i18n';
 
 const TABS = [
   { id: 'diary', label: 'Diary', icon: IconDiary },
@@ -29,7 +30,7 @@ type Tab = (typeof TABS)[number]['id'];
 
 const fromHash = (): Tab => {
   const h = location.hash.slice(1) as Tab;
-  return TABS.some((t) => t.id === h) ? h : 'diary';
+  return TABS.some((tab) => tab.id === h) ? h : 'diary';
 };
 
 function Splash({ text }: { text: string }) {
@@ -61,11 +62,11 @@ function AccountApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid]);
 
-  if (user === undefined) return <Splash text="Loading…" />;
+  if (user === undefined) return <Splash text={t('Loading…')} />;
   if (!user && !localMode) return <SignIn onLocal={() => setLocalMode(true)} />;
-  if (user && sync.state === 'connecting') return <Splash text="Opening your diary…" />;
+  if (user && sync.state === 'connecting') return <Splash text={t('Opening your diary…')} />;
   if (user && sync.state === 'error' && !useStore.getState().profile)
-    return <Splash text={`Could not load your account: ${sync.message}`} />;
+    return <Splash text={t('Could not load your account: {msg}', { msg: sync.message ?? '' })} />;
   return <Main />;
 }
 
@@ -87,7 +88,7 @@ function Main() {
     <>
       <div className="app">
         <header className="topbar">
-          <div className="brand"><Logo /><span className="brand-name">Micenae</span></div>
+          <div className="brand"><Logo /><span className="brand-name">{t('Micenae')}</span></div>
         </header>
         <div className="meander" />
         <main>
@@ -100,12 +101,12 @@ function Main() {
         </main>
       </div>
       <LevelUp />
-      <nav className="tabbar" aria-label="Main">
+      <nav className="tabbar" aria-label={t('Main')}>
         <div className="tabbar-inner">
-          {TABS.map((t) => (
-            <button key={t.id} className="tab" aria-current={tab === t.id ? 'page' : undefined} onClick={() => (location.hash = t.id)}>
-              <t.icon />
-              {t.label}
+          {TABS.map((it) => (
+            <button key={it.id} className="tab" aria-current={tab === it.id ? 'page' : undefined} onClick={() => (location.hash = it.id)}>
+              <it.icon />
+              {t(it.label)}
             </button>
           ))}
         </div>

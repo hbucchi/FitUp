@@ -10,8 +10,9 @@ import { ObjectiveSheet } from './ObjectiveSheet';
 import { ProgramPickerSheet } from './ProgramPicker';
 import { ReviewSheet } from './ReviewSheet';
 import { SessionSheet } from './Session';
+import { t, tTitle } from '../../i18n';
 
-const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => t(d));
 
 export function AscentCard({ onEdit }: { onEdit: () => void }) {
   const profile = useStore((s) => s.profile)!;
@@ -22,12 +23,12 @@ export function AscentCard({ onEdit }: { onEdit: () => void }) {
         <div className="row" style={{ gap: 14 }}>
           <Emblem level={0} size={56} />
           <div style={{ flex: 1 }}>
-            <div className="eyebrow">Villager</div>
-            <div className="h-section">Set your objective</div>
-            <div className="small muted">Pick the physique you're building toward.</div>
+            <div className="eyebrow">{t('Villager')}</div>
+            <div className="h-section">{t('Set your objective')}</div>
+            <div className="small muted">{t('Pick the physique you\'re building toward.')}</div>
           </div>
         </div>
-        <button className="btn primary block" style={{ marginTop: 12 }} onClick={onEdit}>Set objective</button>
+        <button className="btn primary block" style={{ marginTop: 12 }} onClick={onEdit}>{t('Set objective')}</button>
       </section>
     );
   }
@@ -38,14 +39,14 @@ export function AscentCard({ onEdit }: { onEdit: () => void }) {
       <div className="row" style={{ gap: 14 }}>
         <Emblem level={a.level} size={64} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="eyebrow">Rank {a.level + 1} of {LEVELS.length}</div>
+          <div className="eyebrow">{t('Rank {n} of {total}', { n: a.level + 1, total: LEVELS.length })}</div>
           <div className="h-display" style={{ fontSize: 28 }}>{lvl.name}</div>
         </div>
       </div>
       <div style={{ marginTop: 14 }}>
         <div className="row between tiny muted" style={{ marginBottom: 4 }}>
           <span>{Math.round(a.progress * 100)}%</span>
-          {a.next && <span>Next: {a.next.name}</span>}
+          {a.next && <span>{t('Next: {name}', { name: a.next.name })}</span>}
         </div>
         <div className="bar" style={{ height: 10 }}>
           <span style={{ width: `${a.progress * 100}%`, background: 'linear-gradient(90deg, var(--sea), var(--accent))' }} />
@@ -59,12 +60,12 @@ export function AscentCard({ onEdit }: { onEdit: () => void }) {
         </div>
       </div>
       <div className="grid2" style={{ marginTop: 12 }}>
-        <div className="stat"><div className="k">Lean mass to build</div><div className="v">{fmt(a.remainingLeanKg, 1)} kg</div></div>
-        <div className="stat"><div className="k">Fat to lose</div><div className="v">{fmt(a.remainingFatKg, 1)} kg</div></div>
+        <div className="stat"><div className="k">{t('Lean mass to build')}</div><div className="v">{fmt(a.remainingLeanKg, 1)} kg</div></div>
+        <div className="stat"><div className="k">{t('Fat to lose')}</div><div className="v">{fmt(a.remainingFatKg, 1)} kg</div></div>
       </div>
       <div className="row between" style={{ marginTop: 10 }}>
-        <span className="tiny muted">Target {fmt(objective.target.weightKg, 1)} kg · {objective.target.bodyFatPct}% fat</span>
-        <button className="btn ghost" onClick={onEdit}>Edit</button>
+        <span className="tiny muted">{t('Target {w} kg · {bf}% fat', { w: fmt(objective.target.weightKg, 1), bf: objective.target.bodyFatPct })}</span>
+        <button className="btn ghost" onClick={onEdit}>{t('Edit')}</button>
       </div>
     </section>
   );
@@ -87,29 +88,29 @@ export function PlanScreen() {
 
   return (
     <>
-      <h1 className="h-display" style={{ marginBottom: 14 }}>Plan</h1>
+      <h1 className="h-display" style={{ marginBottom: 14 }}>{t('Plan')}</h1>
       <AscentCard onEdit={() => setModal('objective')} />
 
       <section className="card">
         <div className="card-head">
-          <h2 className="h-section">Training</h2>
-          {plan && <span className="badge">Week {currentWeek} of {plan.weeks}</span>}
+          <h2 className="h-section">{t('Training')}</h2>
+          {plan && <span className="badge">{t('Week {n} of {total}', { n: currentWeek ?? 1, total: plan.weeks })}</span>}
         </div>
         {!plan ? (
           <>
-            <button className="btn primary block" onClick={() => setModal('program')}>Choose a program</button>
+            <button className="btn primary block" onClick={() => setModal('program')}>{t('Choose a program')}</button>
           </>
         ) : (
           <>
-            <div className="small" style={{ fontWeight: 600 }}>{plan.name}</div>
+            <div className="small" style={{ fontWeight: 600 }}>{t(plan.name)}</div>
             {(() => {
               const c = plan.choices?.find((x) => x.week === currentWeek);
               if (!c || c.by === 'plan') return null;
-              const label = { standard: 'progressing as planned', repeat: 'repeating last week', lighter: 'lighter week', condensed: 'condensed week', 'skip-deload': 'lighter week skipped' }[c.variant];
-              return <div className="tiny" style={{ color: 'var(--sea)' }}>This week: {label}</div>;
+              const label = { standard: t('progressing as planned'), repeat: t('repeating last week'), lighter: t('lighter week'), condensed: t('condensed week'), 'skip-deload': t('lighter week skipped') }[c.variant];
+              return <div className="tiny" style={{ color: 'var(--sea)' }}>{t('This week: {label}', { label })}</div>;
             })()}
             <div className="tiny muted" style={{ marginBottom: 10 }}>
-              {plan.trainingDays.map((d) => DAY[d]).join(' · ')}{pastCount > 0 && ` · ${doneCount}/${pastCount} done`}
+              {plan.trainingDays.map((d) => DAY[d]).join(' · ')}{pastCount > 0 && ` · ${t('{a}/{b} done', { a: doneCount, b: pastCount })}`}
             </div>
             <ul className="list">
               {week.map((d, i) => {
@@ -118,18 +119,18 @@ export function PlanScreen() {
                   <li key={d} className="row" style={{ padding: '7px 0', borderTop: i === 0 ? 0 : '1px solid var(--line)', alignItems: 'flex-start', opacity: d < today && day.length === 0 ? 0.55 : 1 }}>
                     <span className="small" style={{ width: 44, fontWeight: d === today ? 700 : 500, color: d === today ? 'var(--accent)' : undefined }}>{DAY[weekday(d)]}</span>
                     <div style={{ flex: 1 }}>
-                      {day.length === 0 ? <span className="small muted">Rest</span> : day.map((x) => (
+                      {day.length === 0 ? <span className="small muted">{t('Rest')}</span> : day.map((x) => (
                         <button key={x.id} className="btn ghost" style={{ padding: 0, minHeight: 0, justifyContent: 'flex-start', textAlign: 'left', color: 'var(--ink)', fontWeight: 500 }}
                           onClick={() => setModal({ session: x.id })}>
                           <span style={{ textDecoration: x.status === 'skipped' ? 'line-through' : undefined, opacity: x.status === 'skipped' ? 0.5 : 1 }}>
-                            {x.title} <span className="tiny muted">· ~{estimateMinutes(x)} min</span>
+                            {tTitle(x.title)} <span className="tiny muted">· ~{estimateMinutes(x)} min</span>
                           </span>
                         </button>
                       ))}
                     </div>
                     {day.filter((x) => x.status !== 'planned' || x.date < today).map((x) => (
                       <span key={x.id} className={`badge ${x.status === 'done' ? 'sea' : ''}`}>
-                        {x.status === 'done' ? 'Done' : x.status === 'skipped' ? 'Skipped' : 'Missed'}
+                        {x.status === 'done' ? t('Done') : x.status === 'skipped' ? t('Skipped') : t('Missed')}
                       </span>
                     ))}
                   </li>
@@ -137,8 +138,8 @@ export function PlanScreen() {
               })}
             </ul>
             <div className="grid2" style={{ marginTop: 12 }}>
-              <button className="btn primary" onClick={() => setModal('review')}>Update plan</button>
-              <button className="btn" onClick={() => setModal('program')}>Change program</button>
+              <button className="btn primary" onClick={() => setModal('review')}>{t('Update plan')}</button>
+              <button className="btn" onClick={() => setModal('program')}>{t('Change program')}</button>
             </div>
           </>
         )}
@@ -146,36 +147,36 @@ export function PlanScreen() {
 
       <section className="card">
         <div className="card-head">
-          <h2 className="h-section">Nutrition</h2>
-          {n && <span className="badge">{n.targetRatePct === 0 ? 'Maintenance' : `${n.targetRatePct > 0 ? '+' : ''}${n.targetRatePct}% / week`}</span>}
+          <h2 className="h-section">{t('Nutrition')}</h2>
+          {n && <span className="badge">{n.targetRatePct === 0 ? t('Maintenance') : `${n.targetRatePct > 0 ? '+' : ''}${n.targetRatePct}% / ${t('week')}`}</span>}
         </div>
         {!n ? (
-          <p className="small muted" style={{ margin: 0 }}>Set your objective first.</p>
+          <p className="small muted" style={{ margin: 0 }}>{t('Set your objective first.')}</p>
         ) : (
           <>
             <table className="ntable">
               <tbody>
-                <tr className="group"><td></td><td>Training day</td><td style={{ width: 'auto' }}>Rest day</td></tr>
-                <tr><td>Energy</td><td>{n.training.kcal} kcal</td><td>{n.rest.kcal} kcal</td></tr>
-                <tr><td style={{ color: 'var(--protein)' }}>Protein</td><td>{n.training.protein} g</td><td>{n.rest.protein} g</td></tr>
-                <tr><td style={{ color: 'var(--carbs)' }}>Carbohydrate</td><td>{n.training.carbs} g</td><td>{n.rest.carbs} g</td></tr>
-                <tr><td style={{ color: 'var(--fat)' }}>Fat</td><td>{n.training.fat} g</td><td>{n.rest.fat} g</td></tr>
-                <tr><td>Fiber</td><td>{n.fiber} g</td><td>{n.fiber} g</td></tr>
+                <tr className="group"><td></td><td>{t('Training day')}</td><td style={{ width: 'auto' }}>{t('Rest day')}</td></tr>
+                <tr><td>{t('Energy')}</td><td>{n.training.kcal} kcal</td><td>{n.rest.kcal} kcal</td></tr>
+                <tr><td style={{ color: 'var(--protein)' }}>{t('Protein')}</td><td>{n.training.protein} g</td><td>{n.rest.protein} g</td></tr>
+                <tr><td style={{ color: 'var(--carbs)' }}>{t('Carbohydrate')}</td><td>{n.training.carbs} g</td><td>{n.rest.carbs} g</td></tr>
+                <tr><td style={{ color: 'var(--fat)' }}>{t('Fat')}</td><td>{n.training.fat} g</td><td>{n.rest.fat} g</td></tr>
+                <tr><td>{t('Fiber')}</td><td>{n.fiber} g</td><td>{n.fiber} g</td></tr>
               </tbody>
             </table>
-            <div className="small muted" style={{ marginTop: 10 }}>{n.mealsPerDay} meals · ~{n.proteinPerMeal} g protein each</div>
+            <div className="small muted" style={{ marginTop: 10 }}>{t('{n} meals · ~{g} g protein each', { n: n.mealsPerDay, g: n.proteinPerMeal })}</div>
           </>
         )}
       </section>
 
       {s.reviews.length > 0 && (
         <section className="card flush">
-          <div className="meal-head"><h2 className="h-section">Recent updates</h2></div>
+          <div className="meal-head"><h2 className="h-section">{t('Recent updates')}</h2></div>
           <ul className="list">
             {s.reviews.slice(0, 5).map((r) => (
               <li key={r.id} className="list-item" style={{ alignItems: 'flex-start' }}>
                 <div className="main">
-                  <div className="title small">{prettyDate(r.date)} · {r.by === 'assistant' ? 'Coach' : 'Rules'} · {r.changes.length ? `${r.changes.length} change${r.changes.length > 1 ? 's' : ''}` : 'no changes'}</div>
+                  <div className="title small">{prettyDate(r.date)} · {r.by === 'assistant' ? t('Coach') : t('Rules')} · {r.changes.length ? (r.changes.length > 1 ? t('{n} changes', { n: r.changes.length }) : t('1 change')) : t('no changes')}</div>
                   {r.changes.length > 0 && <div className="sub" style={{ whiteSpace: 'pre-wrap' }}>{r.changes.join('\n')}</div>}
                 </div>
               </li>

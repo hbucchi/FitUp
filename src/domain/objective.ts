@@ -1,5 +1,6 @@
 import type { BodySnapshot, Experience, Goal, Objective, Profile, Sex } from './types';
 import { IDEAL, bodyMetrics } from './metrics';
+import { t } from '../i18n';
 
 /**
  * The ascent: from Villager to God.
@@ -12,13 +13,13 @@ import { IDEAL, bodyMetrics } from './metrics';
  */
 
 export const LEVELS = [
-  { name: 'Villager', at: 0, blurb: 'Every ascent starts at the foot of the mountain.' },
-  { name: 'Hardman', at: 0.15, blurb: 'The habits are forming. The body has started to answer.' },
-  { name: 'Soldier', at: 0.35, blurb: 'Disciplined and consistent — a third of the road behind you.' },
-  { name: 'General', at: 0.55, blurb: 'Past halfway. Others start to notice.' },
-  { name: 'Champion', at: 0.75, blurb: 'A physique built with intent.' },
-  { name: 'Semi-god', at: 0.9, blurb: 'Within reach of the ideal.' },
-  { name: 'God', at: 1, blurb: 'Objective achieved — the classical physique.' },
+  { name: t('Villager'), at: 0, blurb: t('Every ascent starts at the foot of the mountain.') },
+  { name: t('Hardman'), at: 0.15, blurb: t('The habits are forming. The body has started to answer.') },
+  { name: t('Soldier'), at: 0.35, blurb: t('Disciplined and consistent — a third of the road behind you.') },
+  { name: t('General'), at: 0.55, blurb: t('Past halfway. Others start to notice.') },
+  { name: t('Champion'), at: 0.75, blurb: t('A physique built with intent.') },
+  { name: t('Semi-god'), at: 0.9, blurb: t('Within reach of the ideal.') },
+  { name: t('God'), at: 1, blurb: t('Objective achieved — the classical physique.') },
 ] as const;
 
 export function levelIndex(progress: number): number {

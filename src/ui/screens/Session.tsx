@@ -7,6 +7,7 @@ import { fmt } from '../../domain/nutrients';
 import { uid, useStore } from '../../data/store';
 import { Sheet } from '../components/Sheet';
 import { useExercises } from './TrainingLog';
+import { t, tTitle } from '../../i18n';
 
 const restLabel = (sec: number) => (sec >= 120 ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')} min` : `${sec} s`);
 
@@ -14,10 +15,10 @@ const secLabel = (sec: number) => (sec >= 60 && sec % 60 === 0 ? `${sec / 60} mi
 
 export function prescription(e: PlannedExercise) {
   if (e.kind === 'cardio') return `${e.minutes} min`;
-  if (e.kind === 'conditioning') return `${e.rounds} rounds × ${secLabel(e.workSec ?? 60)} on / ${secLabel(e.restSec)} off (~${e.minutes} min)`;
-  if (e.kind === 'power') return `${e.sets} × ${e.repsMin}–${e.repsMax} · explosive · rest ${restLabel(e.restSec)}`;
-  if (e.kind === 'prehab') return `${e.sets} × ${e.repsMin}–${e.repsMax} · rest ${restLabel(e.restSec)}`;
-  return `${e.sets} × ${e.repsMin}–${e.repsMax} · ${e.rir === 0 ? 'to failure' : `${e.rir} in reserve`} · rest ${restLabel(e.restSec)}`;
+  if (e.kind === 'conditioning') return t('{r} rounds × {w} on / {o} off (~{m} min)', { r: e.rounds ?? 0, w: secLabel(e.workSec ?? 60), o: secLabel(e.restSec), m: e.minutes ?? 0 });
+  if (e.kind === 'power') return `${e.sets} × ${e.repsMin}–${e.repsMax} · ${t('explosive')} · ${t('rest')} ${restLabel(e.restSec)}`;
+  if (e.kind === 'prehab') return `${e.sets} × ${e.repsMin}–${e.repsMax} · ${t('rest')} ${restLabel(e.restSec)}`;
+  return `${e.sets} × ${e.repsMin}–${e.repsMax} · ${e.rir === 0 ? t('to failure') : t('{n} in reserve', { n: e.rir })} · ${t('rest')} ${restLabel(e.restSec)}`;
 }
 
 /** Compact form for lists: "3 × 6–8", "6 × 3 min", "30 min". */
@@ -40,7 +41,7 @@ export function SessionSheet({ sessionId, onClose }: { sessionId: string; onClos
   // previous performance per exercise (most recent entry before today)
   const last = useMemo(() => {
     const m = new Map<string, TrainingEntry>();
-    for (const t of [...history].sort((a, b) => a.date.localeCompare(b.date))) if (t.planSessionId !== sessionId) m.set(t.exerciseId, t);
+    for (const tr of [...history].sort((a, b) => a.date.localeCompare(b.date))) if (tr.planSessionId !== sessionId) m.set(tr.exerciseId, tr);
     return m;
   }, [history, sessionId]);
 
@@ -59,7 +60,7 @@ export function SessionSheet({ sessionId, onClose }: { sessionId: string; onClos
   );
   if (!session) return null;
   const done = session.status === 'done';
-  const logged = history.filter((t) => t.planSessionId === session.id);
+  const logged = history.filter((tr) => tr.planSessionId === session.id);
 
   const setAt = (id: string, i: number, patch: Partial<StrengthSet>) =>
     setSets((s) => ({ ...s, [id]: s[id].map((x, j) => (j === i ? { ...x, ...patch } : x)) }));
@@ -74,7 +75,7 @@ export function SessionSheet({ sessionId, onClose }: { sessionId: string; onClos
         const min = e.kind === 'conditioning' ? Math.round((n * ((e.workSec ?? 60) + e.restSec)) / 60) : n;
         if (min <= 0) continue;
         const est = estimateActivity({ exercise: ex, minutes: min, weightKg, intensity: e.kind === 'conditioning' ? 'vigorous' : 'moderate' });
-        addTraining({ id: uid(), date, time, exerciseId: e.exerciseId, exerciseName: e.name, kind: 'aerobic', durationMin: min, kcal: est.kcal, netKcal: est.netKcal, planSessionId: session.id, notes: e.kind === 'conditioning' ? `${n} rounds` : undefined });
+        addTraining({ id: uid(), date, time, exerciseId: e.exerciseId, exerciseName: e.name, kind: 'aerobic', durationMin: min, kcal: est.kcal, netKcal: est.netKcal, planSessionId: session.id, notes: e.kind === 'conditioning' ? t('{n} rounds', { n }) : undefined });
         continue;
       }
       const performed = (sets[e.exerciseId] ?? []).filter((s) => s.reps > 0);
@@ -94,32 +95,32 @@ export function SessionSheet({ sessionId, onClose }: { sessionId: string; onClos
 
   return (
     <Sheet
-      title={session.title}
+      title={tTitle(session.title)}
       onClose={onClose}
       footer={
         done ? undefined : (
           <div className="grid2" style={{ gridTemplateColumns: '1fr 2fr' }}>
-            <button className="btn" onClick={() => { updateSessions([{ ...session, status: 'skipped', note: 'Skipped by you' }]); onClose(); }}>Skip</button>
-            <button className="btn primary" disabled={!anyLogged} onClick={finish}>Finish session</button>
+            <button className="btn" onClick={() => { updateSessions([{ ...session, status: 'skipped', note: t('Skipped by you') }]); onClose(); }}>{t('Skip')}</button>
+            <button className="btn primary" disabled={!anyLogged} onClick={finish}>{t('Finish session')}</button>
           </div>
         )
       }
     >
       <div className="stack">
         <div className="small muted">
-          {prettyDate(session.date)} · ~{estimateMinutes(session)} min{session.originalDate && <> · moved from {prettyDate(session.originalDate)}</>}
+          {prettyDate(session.date)} · ~{estimateMinutes(session)} min{session.originalDate && <> · {t('moved from {d}', { d: prettyDate(session.originalDate) })}</>}
         </div>
         {session.note && <div className="notice tiny">{session.note}</div>}
         {done ? (
           <>
-            <div className="notice">Completed</div>
+            <div className="notice">{t('Completed')}</div>
             <div className="card flush">
               <ul className="list">
-                {logged.map((t) => (
-                  <li key={t.id} className="list-item">
+                {logged.map((tr) => (
+                  <li key={tr.id} className="list-item">
                     <div className="main">
-                      <div className="title">{t.exerciseName}</div>
-                      <div className="sub">{t.sets?.length ? t.sets.map((s) => `${s.reps}${s.weightKg ? ` × ${fmt(s.weightKg)} kg` : ''}`).join(' · ') : `${t.durationMin} min`}</div>
+                      <div className="title">{t(tr.exerciseName)}</div>
+                      <div className="sub">{tr.sets?.length ? tr.sets.map((s) => `${s.reps}${s.weightKg ? ` × ${fmt(s.weightKg)} kg` : ''}`).join(' · ') : `${tr.durationMin} min`}</div>
                     </div>
                   </li>
                 ))}
@@ -132,19 +133,19 @@ export function SessionSheet({ sessionId, onClose }: { sessionId: string; onClos
               const prev = last.get(e.exerciseId);
               return (
                 <div key={e.exerciseId} className="card" style={{ marginBottom: 0 }}>
-                  <div style={{ fontWeight: 600 }}>{e.name}</div>
+                  <div style={{ fontWeight: 600 }}>{t(e.name)}</div>
                   <div className="tiny muted" style={{ marginBottom: 8 }}>{prescription(e)}</div>
                   {prev?.sets?.length ? (
                     <div className="tiny" style={{ color: 'var(--sea)', marginBottom: 8 }}>
-                      Last: {prev.sets.map((s) => `${s.reps}${s.weightKg ? `×${fmt(s.weightKg)}` : ''}`).join(', ')}
+                      {t('Last:')} {prev.sets.map((s) => `${s.reps}${s.weightKg ? `×${fmt(s.weightKg)}` : ''}`).join(', ')}
                     </div>
                   ) : null}
-                  {e.note && <div className="tiny" style={{ marginBottom: 8 }}>{e.note}</div>}
+                  {e.note && <div className="tiny" style={{ marginBottom: 8 }}>{t(e.note)}</div>}
                   {timed(e) ? (
                     <div className="row">
-                      <input className="input num" type="number" min={0} value={cardio[e.exerciseId] ?? 0} aria-label={`${e.name} ${e.kind === 'conditioning' ? 'rounds' : 'minutes'}`}
+                      <input className="input num" type="number" min={0} value={cardio[e.exerciseId] ?? 0} aria-label={`${t(e.name)} — ${e.kind === 'conditioning' ? t('rounds done') : t('minutes')}`}
                         onChange={(ev) => setCardio((c) => ({ ...c, [e.exerciseId]: Number(ev.target.value) }))} />
-                      <span className="small muted">{e.kind === 'conditioning' ? 'rounds done' : 'min'}</span>
+                      <span className="small muted">{e.kind === 'conditioning' ? t('rounds done') : 'min'}</span>
                     </div>
                   ) : (
                     <div className="stack" style={{ gap: 6 }}>
@@ -152,10 +153,10 @@ export function SessionSheet({ sessionId, onClose }: { sessionId: string; onClos
                         <div className="row" key={i}>
                           <span className="num muted small" style={{ width: 22 }}>{i + 1}</span>
                           <input className="input num" type="number" inputMode="numeric" min={0} placeholder={`${e.repsMin}–${e.repsMax}`} value={s.reps || ''}
-                            aria-label={`${e.name} set ${i + 1} reps`} onChange={(ev) => setAt(e.exerciseId, i, { reps: Number(ev.target.value) })} />
-                          <span className="small muted">reps</span>
+                            aria-label={`${t(e.name)} — ${t('Set {n} reps', { n: i + 1 })}`} onChange={(ev) => setAt(e.exerciseId, i, { reps: Number(ev.target.value) })} />
+                          <span className="small muted">{t('reps')}</span>
                           <input className="input num" type="number" inputMode="decimal" min={0} step="any" value={s.weightKg || ''}
-                            aria-label={`${e.name} set ${i + 1} weight`} onChange={(ev) => setAt(e.exerciseId, i, { weightKg: Number(ev.target.value) })} />
+                            aria-label={`${t(e.name)} — ${t('Set {n} weight', { n: i + 1 })}`} onChange={(ev) => setAt(e.exerciseId, i, { weightKg: Number(ev.target.value) })} />
                           <span className="small muted">kg</span>
                         </div>
                       ))}

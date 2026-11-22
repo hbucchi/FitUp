@@ -40,3 +40,38 @@ describe('parseUtterance', () => {
     expect(items('a banana')).toEqual([[1, null, 'banana']]);
   });
 });
+
+describe('português (pt-BR)', () => {
+  const pt = (s: string) => parseUtterance(s, 'pt');
+  const ptItems = (s: string) => pt(s).items.map((i) => [i.quantity, i.unit ?? null, i.food]);
+
+  test('refeição, medidas caseiras e "e" separando itens', () => {
+    const r = pt('No almoço comi duas conchas de feijão, 150 g de arroz e um bife');
+    expect(r.meal).toBe('lunch');
+    expect(ptItems('No almoço comi duas conchas de feijão, 150 g de arroz e um bife')).toEqual([
+      [2, 'ladle', 'feijão'], [150, 'g', 'arroz'], [1, 'fillet', 'bife'],
+    ]);
+  });
+  test('números por extenso, "e meia" e dúzias', () => {
+    expect(ptItems('duzentos e cinquenta gramas de frango grelhado e uma xícara e meia de arroz')).toEqual([
+      [250, 'g', 'frango grelhado'], [1.5, 'cup', 'arroz'],
+    ]);
+    expect(ptItems('meia dúzia de ovos e duas bananas médias')).toEqual([[6, null, 'ovos'], [2, 'medium', 'bananas']]);
+  });
+  test('colher de sopa / de chá, vírgula decimal e as palavras originais em raw', () => {
+    const r = pt('jantei quatro colheres de sopa de farofa, uma colher de chá de azeite e 1,5 xícara de açaí');
+    expect(r.meal).toBe('dinner');
+    expect(r.items.map((i) => [i.quantity, i.unit, i.food])).toEqual([[4, 'tbsp', 'farofa'], [1, 'tsp', 'azeite'], [1.5, 'cup', 'açaí']]);
+    expect(r.items[0].raw).toBe('quatro colheres de sopa de farofa');
+  });
+  test('pós-treino e horário 24 h', () => {
+    const r = pt('pós-treino tomei uma dose de whey com 300 ml de leite às 18h30');
+    expect(r).toMatchObject({ meal: 'post-workout', time: '18:30' });
+    expect(r.items.map((i) => [i.quantity, i.unit, i.food])).toEqual([[1, 'scoop', 'whey'], [300, 'ml', 'leite']]);
+  });
+  test('"um" is a number in Portuguese, a hesitation in English; "vitamin e" stays whole', () => {
+    expect(ptItems('um pão francês')).toEqual([[1, null, 'pão francês']]);
+    expect(parseUtterance('um, I had two eggs and vitamin e', 'en').items.map((i) => i.food)).toEqual(['eggs', 'vitamin e']);
+  });
+});
+

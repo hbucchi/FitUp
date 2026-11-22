@@ -12,6 +12,8 @@ import { IconChevron, IconPlus, IconSearch } from '../components/Icons';
 import { MacroLine } from '../components/Macros';
 import { NutrientTable } from '../components/NutrientTable';
 import { FoodEditor } from './FoodEditor';
+import { ScanSheet } from './ScanSheet';
+import { t } from '../../i18n';
 
 /** Rebuild a food from a diary snapshot when the original is no longer in the catalog. */
 export function foodFromEntry(e: FoodEntry): Food {
@@ -36,18 +38,18 @@ export function FoodSearchList({ onPick, autoFocus = true }: { onPick: (f: Food)
         <input
           className="input"
           type="search"
-          placeholder={ready ? 'Search foods — e.g. "greek yogurt"' : 'Loading catalog…'}
+          placeholder={ready ? t('Search foods — e.g. "greek yogurt"') : t('Loading catalog…')}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           autoFocus={autoFocus}
-          aria-label="Search foods"
+          aria-label={t('Search foods')}
         />
         <span className="suffix"><IconSearch width={16} height={16} /></span>
       </div>
       {error && <div className="error">{error}</div>}
-      {!q.trim() && recent.length > 0 && <div className="eyebrow">Recent</div>}
+      {!q.trim() && recent.length > 0 && <div className="eyebrow">{t('Recent')}</div>}
       {!q.trim() && recent.length === 0 && ready && (
-        <p className="muted small" style={{ margin: 0 }}>{index.items.length.toLocaleString()} foods</p>
+        <p className="muted small" style={{ margin: 0 }}>{t('{n} foods', { n: index.items.length.toLocaleString() })}</p>
       )}
       {list.length > 0 && (
         <div className="card flush">
@@ -58,10 +60,10 @@ export function FoodSearchList({ onPick, autoFocus = true }: { onPick: (f: Food)
                   <div className="main">
                     <div className="title">{f.name}</div>
                     <div className="sub">
-                      {Math.round(f.nutrients.kcal ?? 0)} kcal · <MacroLine n={f.nutrients} /> <span className="muted">per 100 g</span>
+                      {Math.round(f.nutrients.kcal ?? 0)} kcal · <MacroLine n={f.nutrients} /> <span className="muted">{t('per 100 g')}</span>
                     </div>
                   </div>
-                  {f.source === 'Custom' && <span className="badge">Mine</span>}
+                  {f.source === 'Custom' && <span className="badge">{t('Mine')}</span>}
                   <IconChevron width={16} height={16} />
                 </button>
               </li>
@@ -69,7 +71,7 @@ export function FoodSearchList({ onPick, autoFocus = true }: { onPick: (f: Food)
           </ul>
         </div>
       )}
-      {q.trim() && ready && hits.length === 0 && <p className="muted small">No matches for “{q}”.</p>}
+      {q.trim() && ready && hits.length === 0 && <p className="muted small">{t('No matches for “{q}”.', { q })}</p>}
     </div>
   );
 }
@@ -97,12 +99,12 @@ export function AmountForm({ food, initial, onSubmit, submitLabel }: {
       </div>
       <div className="grid2" style={{ gridTemplateColumns: '1fr 1.4fr' }}>
         <label className="field">
-          Quantity
+          {t('Quantity')}
           <input className="input num" type="number" inputMode="decimal" min={0} step="any" value={quantity}
-            onChange={(e) => setQuantity(e.target.value === '' ? '' : Number(e.target.value))} aria-label="Quantity" />
+            onChange={(e) => setQuantity(e.target.value === '' ? '' : Number(e.target.value))} aria-label={t('Quantity')} />
         </label>
         <label className="field">
-          Unit
+          {t('Unit')}
           <select className="input" value={unit} onChange={(e) => {
             const next = e.target.value;
             // keep the amount roughly the same when switching units
@@ -110,18 +112,18 @@ export function AmountForm({ food, initial, onSubmit, submitLabel }: {
             if (nextPortion && grams > 0) setQuantity(Math.round((grams / nextPortion.grams) * 100) / 100);
             setUnit(next);
           }}>
-            {units.map((u) => <option key={u.label} value={u.label}>{u.label === 'g' ? 'grams' : `${u.label} (${fmt(u.grams)} g)`}</option>)}
+            {units.map((u) => <option key={u.label} value={u.label}>{u.label === 'g' ? t('grams') : `${u.label} (${fmt(u.grams)} g)`}</option>)}
           </select>
         </label>
       </div>
       <div className="field">
-        <span>Meal</span>
+        <span>{t('Meal')}</span>
         <div className="chips">
           {MEALS.map((m) => <button type="button" key={m} className="chip" aria-pressed={m === meal} onClick={() => setMeal(m)}>{MEAL_LABEL[m]}</button>)}
         </div>
       </div>
       <label className="field" style={{ maxWidth: 160 }}>
-        Time
+        {t('Time')}
         <input className="input" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
       </label>
 
@@ -134,7 +136,7 @@ export function AmountForm({ food, initial, onSubmit, submitLabel }: {
           <div className="muted small num">{fmt(grams)} g</div>
         </div>
         <button className="btn ghost" style={{ marginTop: 6, paddingLeft: 0 }} onClick={() => setShowAll((s) => !s)}>
-          {showAll ? 'Hide' : 'Show'} full nutrients
+          {showAll ? t('Hide full nutrients') : t('Show full nutrients')}
         </button>
         {showAll && <NutrientTable n={n} />}
       </div>
@@ -157,21 +159,36 @@ export function AddFoodSheet({ date, meal, onClose, entry, food: presetFood }: {
   const [food, setFood] = useState<Food | undefined>(
     presetFood ?? (entry ? byId.get(entry.foodId) ?? foodFromEntry(entry) : undefined),
   );
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState<false | { barcode?: string }>(false);
+  const [scanning, setScanning] = useState(false);
+  const saveCustomFood = useStore((s) => s.saveCustomFood);
+
+  if (scanning) {
+    return (
+      <ScanSheet
+        onClose={() => setScanning(false)}
+        onFood={(f) => { saveCustomFood(f); setScanning(false); setFood(f); }}
+        onCreate={(barcode) => { setScanning(false); setCreating({ barcode }); }}
+      />
+    );
+  }
 
   if (creating) {
     return (
-      <Sheet title="New food" onClose={onClose} leading={<button className="icon-btn" aria-label="Back" onClick={() => setCreating(false)}><IconChevron dir="left" /></button>}>
-        <FoodEditor onSaved={(f) => { setCreating(false); setFood(f); }} />
+      <Sheet title={t('New food')} onClose={onClose} leading={<button className="icon-btn" aria-label={t('Go back')} onClick={() => setCreating(false)}><IconChevron dir="left" /></button>}>
+        <FoodEditor barcode={creating.barcode} onSaved={(f) => { setCreating(false); setFood(f); }} />
       </Sheet>
     );
   }
 
   if (!food) {
     return (
-      <Sheet title={`Add to ${MEAL_LABEL[meal]}`} onClose={onClose}>
+      <Sheet title={t('Add to {meal}', { meal: MEAL_LABEL[meal] })} onClose={onClose}>
         <FoodSearchList onPick={setFood} />
-        <button className="btn block" style={{ marginTop: 14 }} onClick={() => setCreating(true)}><IconPlus /> Create a new food</button>
+        <div className="grid2" style={{ marginTop: 14 }}>
+          <button className="btn" onClick={() => setScanning(true)}>{t('Scan barcode')}</button>
+          <button className="btn" onClick={() => setCreating({})}><IconPlus /> {t('New food')}</button>
+        </div>
       </Sheet>
     );
   }
@@ -186,14 +203,14 @@ export function AddFoodSheet({ date, meal, onClose, entry, food: presetFood }: {
 
   return (
     <Sheet
-      title={entry ? 'Edit entry' : 'Amount'}
+      title={entry ? t('Edit entry') : t('Amount')}
       onClose={onClose}
-      leading={!entry && !presetFood ? <button className="icon-btn" aria-label="Back" onClick={() => setFood(undefined)}><IconChevron dir="left" /></button> : undefined}
+      leading={!entry && !presetFood ? <button className="icon-btn" aria-label={t('Go back')} onClick={() => setFood(undefined)}><IconChevron dir="left" /></button> : undefined}
     >
       <AmountForm
         food={food}
         initial={def}
-        submitLabel={entry ? 'Save' : 'Add to diary'}
+        submitLabel={entry ? t('Save') : t('Add to diary')}
         onSubmit={(v) => {
           const e: FoodEntry = {
             id: entry?.id ?? uid(), date: entry?.date ?? date, time: v.time, meal: v.meal, foodId: food.id, foodName: food.name,
@@ -206,7 +223,7 @@ export function AddFoodSheet({ date, meal, onClose, entry, food: presetFood }: {
       />
       {entry && (
         <button className="btn ghost danger block" style={{ marginTop: 8 }} onClick={() => { removeFoodEntry(entry.id); onClose(); }}>
-          Remove from diary
+          {t('Remove from diary')}
         </button>
       )}
     </Sheet>

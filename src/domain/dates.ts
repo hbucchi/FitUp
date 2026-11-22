@@ -1,3 +1,4 @@
+import { LOCALE, t } from '../i18n';
 export function toISODate(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -15,11 +16,11 @@ export function nowHHMM(): string {
 }
 export function prettyDate(iso: string): string {
   const today = todayISO();
-  if (iso === today) return 'Today';
-  if (iso === shiftDate(today, -1)) return 'Yesterday';
-  if (iso === shiftDate(today, 1)) return 'Tomorrow';
+  if (iso === today) return t('Today');
+  if (iso === shiftDate(today, -1)) return t('Yesterday');
+  if (iso === shiftDate(today, 1)) return t('Tomorrow');
   const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+  return new Date(y, m - 1, d).toLocaleDateString(LOCALE === 'pt' ? 'pt-BR' : undefined, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 /** Guess the meal from the clock, for sensible defaults. */
 export function mealForNow(): 'breakfast' | 'lunch' | 'dinner' | 'snack' {

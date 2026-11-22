@@ -10,23 +10,30 @@ import { MacroLine } from '../components/Macros';
 import { NutrientTable } from '../components/NutrientTable';
 import { AddFoodSheet, FoodSearchList } from './AddFood';
 import { FoodEditor } from './FoodEditor';
+import { ScanSheet } from './ScanSheet';
+import { t } from '../../i18n';
 
 export function Foods() {
   const { meta, customFoods } = useCatalog();
   const [view, setView] = useState<Food | null>(null);
-  const [editing, setEditing] = useState<Food | 'new' | null>(null);
+  const [editing, setEditing] = useState<Food | 'new' | { barcode: string } | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const saveCustomFood = useStore((s) => s.saveCustomFood);
   const [adding, setAdding] = useState<Food | null>(null);
 
   return (
     <>
       <div className="row between" style={{ marginBottom: 14 }}>
-        <h1 className="h-display">Foods</h1>
-        <button className="btn" onClick={() => setEditing('new')}><IconPlus /> New food</button>
+        <h1 className="h-display">{t('Foods')}</h1>
+        <div className="row" style={{ gap: 8 }}>
+          <button className="btn" onClick={() => setScanning(true)}>{t('Scan')}</button>
+          <button className="btn" onClick={() => setEditing('new')}><IconPlus /> {t('New')}</button>
+        </div>
       </div>
 
       {customFoods.length > 0 && (
         <section className="card flush">
-          <div className="meal-head"><h2 className="h-section">My foods</h2></div>
+          <div className="meal-head"><h2 className="h-section">{t('My foods')}</h2></div>
           <ul className="list">
             {customFoods.map((f) => (
               <li key={f.id}>
@@ -46,14 +53,25 @@ export function Foods() {
       <FoodSearchList onPick={setView} autoFocus={false} />
 
       <p className="tiny muted" style={{ marginTop: 18 }}>
-        USDA FoodData Central{meta ? ` · ${meta.count.toLocaleString()} foods` : ''}
+        USDA FoodData Central · TACO (NEPA/UNICAMP){meta ? ` · ${t('{n} foods', { n: meta.count.toLocaleString() })}` : ''}
       </p>
 
+      {scanning && (
+        <ScanSheet
+          onClose={() => setScanning(false)}
+          onFood={(f) => { saveCustomFood(f); setScanning(false); setAdding(f); }}
+          onCreate={(barcode) => { setScanning(false); setEditing({ barcode }); }}
+        />
+      )}
       {view && !adding && !editing && <FoodDetailSheet food={view} onClose={() => setView(null)} onAdd={() => setAdding(view)} onEdit={() => setEditing(view)} />}
       {adding && <AddFoodSheet date={todayISO()} meal={mealForNow()} food={adding} onClose={() => { setAdding(null); setView(null); }} />}
       {editing && (
-        <Sheet title={editing === 'new' ? 'New food' : 'Edit food'} onClose={() => setEditing(null)}>
-          <FoodEditor initial={editing === 'new' ? undefined : editing} onSaved={(f) => { setEditing(null); setView(f); }} />
+        <Sheet title={editing === 'new' || !('id' in editing) ? t('New food') : t('Edit food')} onClose={() => setEditing(null)}>
+          <FoodEditor
+            initial={editing !== 'new' && 'id' in editing ? editing : undefined}
+            barcode={editing !== 'new' && !('id' in editing) ? editing.barcode : undefined}
+            onSaved={(f) => { setEditing(null); setView(f); }}
+          />
         </Sheet>
       )}
     </>
@@ -66,16 +84,16 @@ function FoodDetailSheet({ food, onClose, onAdd, onEdit }: { food: Food; onClose
   const portion = food.portions.find((p) => p.label === basis);
   const n = portion ? scaleNutrients(food.nutrients, portion.grams) : food.nutrients;
   return (
-    <Sheet title="Food" onClose={onClose} footer={<button className="btn primary block" onClick={onAdd}><IconPlus /> Add to today</button>}>
+    <Sheet title={t('Food')} onClose={onClose} footer={<button className="btn primary block" onClick={onAdd}><IconPlus /> {t('Add to today')}</button>}>
       <div className="stack">
         <div>
           <div className="h-section">{food.name}</div>
           <div className="tiny muted">{food.source}{food.brand ? ` · ${food.brand}` : ''} · {food.category}{food.id.startsWith('usda:') ? ` · FDC ${food.id.slice(5)}` : ''}</div>
         </div>
         <label className="field">
-          Show values for
+          {t('Show values for')}
           <select className="input" value={basis} onChange={(e) => setBasis(e.target.value)}>
-            <option value="100 g">100 g</option>
+            <option value="100 g">{t('100 g')}</option>
             {food.portions.map((p) => <option key={p.label} value={p.label}>1 {p.label} ({fmt(p.grams)} g)</option>)}
           </select>
         </label>
@@ -84,10 +102,12 @@ function FoodDetailSheet({ food, onClose, onAdd, onEdit }: { food: Food; onClose
           <div className="small" style={{ marginTop: 4 }}><MacroLine n={n} /></div>
         </div>
         <NutrientTable n={n} />
-        {food.source === 'Custom' && (
+        {food.source === 'Open Food Facts' && <div className="tiny muted">{t('Community data — check against the label.')}</div>}
+        {food.recipe && <div className="tiny muted">{food.recipe}</div>}
+        {(food.source === 'Custom' || food.barcode) && (
           <div className="grid2">
-            <button className="btn" onClick={onEdit}>Edit</button>
-            <button className="btn danger" onClick={() => { del(food.id); onClose(); }}>Delete</button>
+            <button className="btn" onClick={onEdit}>{t('Edit')}</button>
+            <button className="btn danger" onClick={() => { del(food.id); onClose(); }}>{t('Delete')}</button>
           </div>
         )}
       </div>

@@ -10,6 +10,7 @@ import { IconMic, IconPlus } from '../components/Icons';
 import { CheckInSheet, checkInSummary } from './CheckIn';
 import { SymptomSheet } from './SymptomSheet';
 import { VoiceLogSheet } from './VoiceLog';
+import { t } from '../../i18n';
 
 const DAY = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -19,9 +20,9 @@ function Trend({ days }: { days: { date: string; sleep?: number; mood?: number }
   const y = (h: number) => base - (Math.min(h, 10) / 10) * (base - top);
   const moodY = (m: number) => base - ((m - 1) / 4) * (base - top);
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Sleep and mood, last 14 days">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label={t('Sleep and mood, last 14 days')}>
       <line x1="0" x2={W} y1={y(7)} y2={y(7)} stroke="var(--line)" strokeDasharray="3 3" />
-      <text x={W} y={y(7) - 3} textAnchor="end" fontSize="9" fill="var(--muted)">7 h</text>
+      <text x={W} y={y(7) - 3} textAnchor="end" fontSize="9" fill="var(--muted)">{t('7 h')}</text>
       {days.map((d, i) => (
         <g key={d.date}>
           {d.sleep != null && (
@@ -62,7 +63,7 @@ export function Wellbeing() {
     <li key={s.id}>
       <button className="list-item" onClick={() => setModal({ edit: s })}>
         <div className="main">
-          <div className="title">{SYMPTOM_KINDS[s.kind]}{s.bodyPart ? ` · ${s.bodyPart}` : ''}</div>
+          <div className="title">{t(SYMPTOM_KINDS[s.kind])}{s.bodyPart ? ` · ${s.bodyPart}` : ''}</div>
           <div className="sub">{[withDate ? prettyDate(s.date) : '', s.time, s.note].filter(Boolean).join(' · ')}</div>
         </div>
         <span className="badge" style={s.severity >= 4 ? { color: 'var(--danger)' } : undefined}>{s.severity}/5</span>
@@ -72,44 +73,44 @@ export function Wellbeing() {
 
   return (
     <>
-      <h1 className="h-display" style={{ marginBottom: 14 }}>Wellbeing</h1>
+      <h1 className="h-display" style={{ marginBottom: 14 }}>{t('Wellbeing')}</h1>
 
       {assistantOn && (
-        <button className="btn primary block" style={{ marginBottom: 10 }} onClick={() => setModal('voice')}><IconMic /> Tell the assistant</button>
+        <button className="btn primary block" style={{ marginBottom: 10 }} onClick={() => setModal('voice')}><IconMic /> {t('Tell the assistant')}</button>
       )}
       <div className="grid2" style={{ marginBottom: 14 }}>
-        <button className="btn" onClick={() => setModal('checkin')}>{todayCheckIn ? 'Edit check-in' : 'Check-in'}</button>
-        <button className="btn" onClick={() => setModal('symptom')}><IconPlus /> Symptom</button>
+        <button className="btn" onClick={() => setModal('checkin')}>{todayCheckIn ? t('Edit check-in') : t('Check-in')}</button>
+        <button className="btn" onClick={() => setModal('symptom')}><IconPlus /> {t('Symptom')}</button>
       </div>
 
       <section className="card flush">
-        <div className="meal-head"><h2 className="h-section">Today</h2></div>
+        <div className="meal-head"><h2 className="h-section">{t('Today')}</h2></div>
         <div className="empty" style={{ color: todayCheckIn ? 'var(--ink-2)' : undefined }}>
-          {todayCheckIn ? checkInSummary(todayCheckIn) || 'Checked in' : 'No check-in yet.'}
+          {todayCheckIn ? checkInSummary(todayCheckIn) || t('Checked in') : t('No check-in yet.')}
         </div>
         {todaySymptoms.length > 0 && <ul className="list">{todaySymptoms.map((s) => row(s))}</ul>}
       </section>
 
       <section className="card">
         <div className="card-head">
-          <h2 className="h-section">14 days</h2>
-          <span className="tiny muted"><span style={{ color: 'var(--accent)' }}>■</span> sleep · <span style={{ color: 'var(--sea)' }}>●</span> mood</span>
+          <h2 className="h-section">{t('14 days')}</h2>
+          <span className="tiny muted"><span style={{ color: 'var(--accent)' }}>■</span> {t('sleep ·')} <span style={{ color: 'var(--sea)' }}>●</span> {t('mood')}</span>
         </div>
         <Trend days={days} />
         {rec.checkIns > 0 && (
           <div className="grid3" style={{ marginTop: 10 }}>
-            <div className="stat"><div className="k">Sleep · 7 d</div><div className="v">{rec.sleepAvg != null ? `${rec.sleepAvg.toFixed(1)} h` : '—'}</div></div>
-            <div className="stat"><div className="k">Mood</div><div className="v">{rec.moodAvg != null ? rec.moodAvg.toFixed(1) : '—'}</div></div>
-            <div className="stat"><div className="k">Energy</div><div className="v">{rec.energyAvg != null ? rec.energyAvg.toFixed(1) : '—'}</div></div>
+            <div className="stat"><div className="k">{t('Sleep · 7 d')}</div><div className="v">{rec.sleepAvg != null ? `${rec.sleepAvg.toFixed(1)} h` : '—'}</div></div>
+            <div className="stat"><div className="k">{t('Mood')}</div><div className="v">{rec.moodAvg != null ? rec.moodAvg.toFixed(1) : '—'}</div></div>
+            <div className="stat"><div className="k">{t('Energy')}</div><div className="v">{rec.energyAvg != null ? rec.energyAvg.toFixed(1) : '—'}</div></div>
           </div>
         )}
       </section>
 
       {month.length > 0 && (
         <section className="card flush">
-          <div className="meal-head"><h2 className="h-section">Last 30 days</h2></div>
+          <div className="meal-head"><h2 className="h-section">{t('Last 30 days')}</h2></div>
           <div className="chips" style={{ padding: '0 16px 10px' }}>
-            {counts.map(([k, n]) => <span key={k} className="badge">{SYMPTOM_KINDS[k]} ×{n}</span>)}
+            {counts.map(([k, n]) => <span key={k} className="badge">{t(SYMPTOM_KINDS[k])} ×{n}</span>)}
           </div>
           <ul className="list">{month.slice(0, 12).map((s) => row(s, true))}</ul>
         </section>
@@ -117,7 +118,7 @@ export function Wellbeing() {
 
       {modal === 'checkin' && <CheckInSheet date={today} onClose={() => setModal(null)} />}
       {modal === 'symptom' && <SymptomSheet date={today} onClose={() => setModal(null)} />}
-      {modal === 'voice' && <VoiceLogSheet date={today} onClose={() => setModal(null)} placeholder="Slept 6 h, headache this afternoon, cramp in my left calf" />}
+      {modal === 'voice' && <VoiceLogSheet date={today} onClose={() => setModal(null)} placeholder={t('Slept 6 h, headache this afternoon, cramp in my left calf')} />}
       {modal && typeof modal === 'object' && <SymptomSheet date={modal.edit.date} symptom={modal.edit} onClose={() => setModal(null)} />}
     </>
   );

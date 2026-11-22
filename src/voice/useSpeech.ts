@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { t } from '../i18n';
 
 /**
  * Speech-to-text via the browser's Web Speech API (Chrome, Edge, Safari).
@@ -27,10 +28,10 @@ function getRecognizer(): (new () => SR) | undefined {
 }
 
 const ERRORS: Record<string, string> = {
-  'not-allowed': 'Microphone access was blocked. Allow it in your browser settings, or type instead.',
-  'no-speech': 'No speech was detected. Try again a little closer to the microphone.',
-  network: 'Speech recognition needs a network connection in this browser.',
-  'audio-capture': 'No microphone was found.',
+  'not-allowed': t('Microphone access was blocked. Allow it in your browser settings, or type instead.'),
+  'no-speech': t('No speech was detected. Try again a little closer to the microphone.'),
+  network: t('Speech recognition needs a network connection in this browser.'),
+  'audio-capture': t('No microphone was found.'),
 };
 
 export function useSpeech(lang = 'en-US') {
@@ -61,7 +62,7 @@ export function useSpeech(lang = 'en-US') {
       setInterim(tmp);
     };
     r.onerror = (e) => {
-      if (e.error !== 'aborted') setError(ERRORS[e.error] ?? `Speech recognition error: ${e.error}`);
+      if (e.error !== 'aborted') setError(ERRORS[e.error] ?? t('Speech recognition error: {e}', { e: e.error }));
     };
     r.onend = () => {
       setListening(false);

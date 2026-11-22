@@ -7,6 +7,7 @@ import { bodyMetrics } from '../domain/metrics';
 import { ascent, LEVELS } from '../domain/objective';
 import { runAgentTask, type AgentConfig, type AgentEvent } from './runAgent';
 import { ToolError, type ToolDef } from './tools';
+import { replyLanguage, t, tTitle } from '../i18n';
 
 /**
  * "Update plan".
@@ -53,11 +54,11 @@ export interface ReviewResult {
   nutrition?: NutritionPlan;
 }
 
-const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => t(d));
 const fmtDay = (d: string) => `${DAY[weekday(d)]} ${d.slice(5)}`;
 
 function describeChange(c: ScheduleChange) {
-  return c.to ? `${c.title}: ${fmtDay(c.from)} → ${fmtDay(c.to)}` : `${c.title} (${fmtDay(c.from)}) skipped`;
+  return c.to ? `${tTitle(c.title)}: ${fmtDay(c.from)} → ${fmtDay(c.to)}` : t('{s} ({d}) skipped', { s: tTitle(c.title), d: fmtDay(c.from) });
 }
 
 export function baseline(input: ReviewInput) {
@@ -93,11 +94,11 @@ export function rulesReview(input: ReviewInput): ReviewResult {
   const changes = base.schedule.map(describeChange);
   const lines: string[] = [];
   const week = base.ruleChoice ? applyWeek(base.program, input, base.targetWeek, base.ruleChoice.option, base.ruleChoice.reason, 'rules', base.options) : undefined;
-  if (week && week.decision.chosen.id !== 'standard') changes.push(`Week ${week.decision.week}: ${week.decision.chosen.title}`);
+  if (week && week.decision.chosen.id !== 'standard') changes.push(t('Week {n}: {title}', { n: week.decision.week, title: week.decision.chosen.title }));
   if (base.nutrition) {
     if (base.nutrition.changed && input.nutrition) {
       const n = base.nutrition.plan;
-      changes.push(`Calories: training days ${input.nutrition.training.kcal}→${n.training.kcal}, rest days ${input.nutrition.rest.kcal}→${n.rest.kcal} kcal`);
+      changes.push(t('Calories: training days {a}→{b}, rest days {c}→{d} kcal', { a: input.nutrition.training.kcal, b: n.training.kcal, c: input.nutrition.rest.kcal, d: n.rest.kcal }));
     }
     lines.push(...base.nutrition.reasons);
   }
@@ -232,6 +233,8 @@ export const COACH_SYSTEM = `You are the coach inside Micenae, a training and nu
 
 Finish with a short summary for the athlete: what you decided and why (one line each), and one thing to focus on this week. No preamble.`;
 
+const coachSystem = () => `${COACH_SYSTEM}\n\nWrite the summary and all reasons in ${replyLanguage()}.`;
+
 interface CoachState {
   sessions: Map<string, PlannedSession>;
   nutrition?: NutritionPlan;
@@ -266,13 +269,13 @@ export function executeCoachTool(name: string, input: Record<string, any>, ctx: 
       const clash = [...state.sessions.values()].find((x) => x.id !== s.id && x.date === to && x.status !== 'skipped');
       if (clash) throw new ToolError(`${to} already has "${clash.title}". Move or skip that one first, or choose another day.`);
       state.sessions.set(s.id, { ...s, date: to, originalDate: s.originalDate ?? s.date, note: String(input.reason ?? '') });
-      state.changes.push(`${s.title}: ${fmtDay(s.date)} → ${fmtDay(to)} — ${input.reason}`);
+      state.changes.push(`${tTitle(s.title)}: ${fmtDay(s.date)} → ${fmtDay(to)} — ${input.reason}`);
       return { ok: true };
     }
     case 'skip_session': {
       const s = open(String(input.session_id));
       state.sessions.set(s.id, { ...s, status: 'skipped', note: String(input.reason ?? '') });
-      state.changes.push(`${s.title} (${fmtDay(s.date)}) skipped — ${input.reason}`);
+      state.changes.push(`${t('{s} ({d}) skipped', { s: tTitle(s.title), d: fmtDay(s.date) })} — ${input.reason}`);
       return { ok: true };
     }
     case 'set_nutrition_targets': {
@@ -296,7 +299,7 @@ export function executeCoachTool(name: string, input: Record<string, any>, ctx: 
       const training = check(input.training_day ?? {}, cur.training, 'Training day');
       const rest = check(input.rest_day ?? {}, cur.rest, 'Rest day');
       state.nutrition = { ...cur, training, rest, proteinPerMeal: Math.round(training.protein / cur.mealsPerDay), updatedAt: new Date().toISOString() };
-      state.changes.push(`Calories: training days ${cur.training.kcal}→${training.kcal}, rest days ${cur.rest.kcal}→${rest.kcal} kcal — ${input.reason}`);
+      state.changes.push(`${t('Calories: training days {a}→{b}, rest days {c}→{d} kcal', { a: cur.training.kcal, b: training.kcal, c: cur.rest.kcal, d: rest.kcal })} — ${input.reason}`);
       return { ok: true, training_day: training, rest_day: rest };
     }
     default:
@@ -315,7 +318,7 @@ export async function coachReview(cfg: AgentConfig, input: ReviewInput, onEvent:
   const summary = await runAgentTask(
     cfg,
     {
-      system: COACH_SYSTEM,
+      system: coachSystem(),
       tools: COACH_TOOLS,
       user,
       execute: (n, i) => executeCoachTool(n, i, { input: working, state, options: base.options, targetWeek: base.targetWeek }),
@@ -327,7 +330,7 @@ export async function coachReview(cfg: AgentConfig, input: ReviewInput, onEvent:
   // if the coach didn't choose, fall back to the rule-based pick
   const pick = state.week ?? (base.ruleChoice ? { option: base.ruleChoice.option, reason: `${base.ruleChoice.reason} (rule-based — the assistant didn't choose)` } : undefined);
   const week = pick ? applyWeek(base.program, working, base.targetWeek, pick.option, pick.reason, state.week ? 'assistant' : 'rules', base.options) : undefined;
-  if (week && week.decision.chosen.id !== 'standard') state.changes.push(`Week ${week.decision.week}: ${week.decision.chosen.title}`);
+  if (week && week.decision.chosen.id !== 'standard') state.changes.push(t('Week {n}: {title}', { n: week.decision.week, title: week.decision.chosen.title }));
   const changed = [...state.sessions.values()].filter((s) => input.sessions.find((o) => o.id === s.id) !== s);
   return { by: 'assistant', summary, changes: state.changes, sessions: changed, week, nutrition: state.nutrition !== input.nutrition ? state.nutrition : undefined };
 }

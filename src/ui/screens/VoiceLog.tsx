@@ -16,6 +16,7 @@ import { AgentRun } from './AgentRun';
 import { agentReady, transcribeConfig, useAssistant } from '../../agent/settings';
 import { transcribeAudio } from '../../agent/transcribe';
 import { useRecorder } from '../../voice/useRecorder';
+import { LOCALE, t } from '../../i18n';
 
 interface Row {
   key: string;
@@ -31,7 +32,7 @@ interface Row {
 }
 
 export function VoiceLogSheet({ date, onClose, placeholder }: { date: string; onClose: () => void; placeholder?: string }) {
-  const speech = useSpeech(navigator.language?.startsWith('en') ? navigator.language : 'en-US');
+  const speech = useSpeech(LOCALE === 'pt' ? 'pt-BR' : navigator.language?.startsWith('en') ? navigator.language : 'en-US');
   const { ready, index, boost } = useCatalog();
   const addFoodEntries = useStore((s) => s.addFoodEntries);
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -67,9 +68,9 @@ export function VoiceLogSheet({ date, onClose, placeholder }: { date: string; on
     setSttError(null);
     setTranscribing(true);
     try {
-      const t = await transcribeAudio(blob, stt);
+      const heard = await transcribeAudio(blob, stt);
       const now = latest.current;
-      const full = now.text.trim() ? `${now.text.trim()} ${t}` : t;
+      const full = now.text.trim() ? `${now.text.trim()} ${heard}` : heard;
       speech.setTranscript(full);
       // voice note → agent, no extra tap (the transcript stays visible on the result screen)
       if (now.assistantOn && now.autoLog && full.trim()) setQueuedForAgent(full.trim());
@@ -126,8 +127,8 @@ export function VoiceLogSheet({ date, onClose, placeholder }: { date: string; on
   const replacingRow = rows?.find((r) => r.key === replacing);
   if (replacingRow) {
     return (
-      <Sheet title="Choose food" onClose={onClose} leading={<button className="icon-btn" aria-label="Back" onClick={() => setReplacing(null)}><IconChevron dir="left" /></button>}>
-        <p className="said" style={{ marginTop: 0 }}>You said: “{replacingRow.said}”</p>
+      <Sheet title={t('Choose food')} onClose={onClose} leading={<button className="icon-btn" aria-label={t('Go back')} onClick={() => setReplacing(null)}><IconChevron dir="left" /></button>}>
+        <p className="said" style={{ marginTop: 0 }}>{t('You said: “{s}”', { s: replacingRow.said })}</p>
         <FoodSearchList onPick={(f) => { chooseFood(replacingRow, f); setReplacing(null); }} />
       </Sheet>
     );
@@ -136,16 +137,16 @@ export function VoiceLogSheet({ date, onClose, placeholder }: { date: string; on
   if (rows) {
     return (
       <Sheet
-        title="Review"
+        title={t('Review')}
         onClose={onClose}
-        leading={<button className="icon-btn" aria-label="Back" onClick={() => setRows(null)}><IconChevron dir="left" /></button>}
+        leading={<button className="icon-btn" aria-label={t('Go back')} onClick={() => setRows(null)}><IconChevron dir="left" /></button>}
         footer={
           <div className="stack" style={{ gap: 8 }}>
             <div className="row between small">
-              <span className="muted">{included.length} item{included.length === 1 ? '' : 's'}</span>
+              <span className="muted">{included.length === 1 ? t('1 item') : t('{n} items', { n: included.length })}</span>
               <span><strong className="num">{Math.round(totals.kcal ?? 0)} kcal</strong> · <MacroLine n={totals} /></span>
             </div>
-            <button className="btn primary block" disabled={!included.length} onClick={save}>Add to {MEAL_LABEL[meal]}</button>
+            <button className="btn primary block" disabled={!included.length} onClick={save}>{t('Add to {meal}', { meal: MEAL_LABEL[meal] })}</button>
           </div>
         }
       >
@@ -153,8 +154,8 @@ export function VoiceLogSheet({ date, onClose, placeholder }: { date: string; on
           <div className="chips">
             {MEALS.map((m) => <button key={m} className="chip" aria-pressed={m === meal} onClick={() => setMeal(m)}>{MEAL_LABEL[m]}</button>)}
           </div>
-          <label className="field" style={{ maxWidth: 160 }}>Time<input className="input" type="time" value={time} onChange={(e) => setTime(e.target.value)} /></label>
-          {rows.length === 0 && <p className="muted">No foods found — try “2 eggs and a slice of toast”.</p>}
+          <label className="field" style={{ maxWidth: 160 }}>{t('Time')}<input className="input" type="time" value={time} onChange={(e) => setTime(e.target.value)} /></label>
+          {rows.length === 0 && <p className="muted">{t('No foods found — try “2 eggs and a slice of toast”.')}</p>}
           {rows.map((r) => {
             const grams = r.food ? gramsFor(r.food, r.quantity, r.unit) : 0;
             const n = r.food ? scaleNutrients(r.food.nutrients, grams) : {};
@@ -163,12 +164,12 @@ export function VoiceLogSheet({ date, onClose, placeholder }: { date: string; on
                 <div className="row between" style={{ alignItems: 'flex-start' }}>
                   <div className="said">“{r.said}”</div>
                   <label className="row small" style={{ gap: 6 }}>
-                    <input type="checkbox" checked={r.include} disabled={!r.food} onChange={(e) => update(r.key, { include: e.target.checked })} /> Include
+                    <input type="checkbox" checked={r.include} disabled={!r.food} onChange={(e) => update(r.key, { include: e.target.checked })} /> {t('Include')}
                   </label>
                 </div>
                 {r.food ? (
                   <>
-                    <select className="input" style={{ marginTop: 8 }} value={r.food.id} aria-label="Matched food"
+                    <select className="input" style={{ marginTop: 8 }} value={r.food.id} aria-label={t('Matched food')}
                       onChange={(e) => {
                         if (e.target.value === '__search') return setReplacing(r.key);
                         const f = r.candidates.find((c) => c.id === e.target.value);
@@ -176,13 +177,13 @@ export function VoiceLogSheet({ date, onClose, placeholder }: { date: string; on
                       }}>
                       {!r.candidates.some((c) => c.id === r.food!.id) && <option value={r.food.id}>{r.food.name}</option>}
                       {r.candidates.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      <option value="__search">Search for something else…</option>
+                      <option value="__search">{t('Search for something else…')}</option>
                     </select>
                     <div className="grid2" style={{ gridTemplateColumns: '1fr 1.6fr', marginTop: 8 }}>
-                      <input className="input num" type="number" min={0} step="any" value={r.quantity} aria-label="Quantity"
+                      <input className="input num" type="number" min={0} step="any" value={r.quantity} aria-label={t('Quantity')}
                         onChange={(e) => update(r.key, { quantity: Number(e.target.value) })} />
-                      <select className="input" value={r.unit} aria-label="Unit" onChange={(e) => update(r.key, { unit: e.target.value })}>
-                        {unitOptions(r.food).map((u) => <option key={u.label} value={u.label}>{u.label === 'g' ? 'grams' : `${u.label} (${fmt(u.grams)} g)`}</option>)}
+                      <select className="input" value={r.unit} aria-label={t('Unit')} onChange={(e) => update(r.key, { unit: e.target.value })}>
+                        {unitOptions(r.food).map((u) => <option key={u.label} value={u.label}>{u.label === 'g' ? t('grams') : `${u.label} (${fmt(u.grams)} g)`}</option>)}
                       </select>
                     </div>
                     <div className="small row between" style={{ marginTop: 8 }}>
@@ -191,7 +192,7 @@ export function VoiceLogSheet({ date, onClose, placeholder }: { date: string; on
                     </div>
                   </>
                 ) : (
-                  <button className="btn block" style={{ marginTop: 8 }} onClick={() => setReplacing(r.key)}>No match — search the catalog</button>
+                  <button className="btn block" style={{ marginTop: 8 }} onClick={() => setReplacing(r.key)}>{t('No match — search the catalog')}</button>
                 )}
               </div>
             );
@@ -203,7 +204,7 @@ export function VoiceLogSheet({ date, onClose, placeholder }: { date: string; on
 
   if (agentText) {
     return (
-      <Sheet title="Assistant" onClose={onClose}>
+      <Sheet title={t('Assistant')} onClose={onClose}>
         <AgentRun text={agentText} date={date} onDone={onClose} />
       </Sheet>
     );
@@ -211,57 +212,57 @@ export function VoiceLogSheet({ date, onClose, placeholder }: { date: string; on
 
   const busy = transcribing || recorder.recording || !!queuedForAgent;
   return (
-    <Sheet title={assistantOn ? 'Tell the assistant' : 'Describe your meal'} onClose={onClose}>
+    <Sheet title={assistantOn ? t('Tell the assistant') : t('Describe your meal')} onClose={onClose}>
       <div className="stack" style={{ textAlign: 'center' }}>
         {cloudStt ? (
           <>
             <button className={`mic ${recorder.recording ? 'live' : ''}`} disabled={transcribing}
               onClick={recorder.recording ? recorder.stop : () => recorder.start(handleAudio)}
-              aria-label={recorder.recording ? 'Stop recording' : 'Record a voice note'}>
+              aria-label={recorder.recording ? t('Stop recording') : t('Record a voice note')}>
               {recorder.recording ? <IconStop /> : <IconMic />}
             </button>
             <div className="small muted">
-              {recorder.recording ? `Recording… ${recorder.seconds}s` : transcribing ? 'Transcribing…' : 'Tap to record'}
+              {recorder.recording ? t('Recording… {s}s', { s: recorder.seconds }) : transcribing ? t('Transcribing…') : t('Tap to record')}
             </div>
             <label className="btn ghost small" style={{ alignSelf: 'center' }}>
-              Or upload an audio file
+              {t('Or upload an audio file')}
               <input type="file" accept="audio/*" className="sr-only" onChange={(e) => e.target.files?.[0] && handleAudio(e.target.files[0])} />
             </label>
           </>
         ) : speech.supported ? (
           <>
             <button className={`mic ${speech.listening ? 'live' : ''}`} onClick={speech.listening ? speech.stop : speech.start}
-              aria-label={speech.listening ? 'Stop recording' : 'Start recording'}>
+              aria-label={speech.listening ? t('Stop recording') : t('Start recording')}>
               {speech.listening ? <IconStop /> : <IconMic />}
             </button>
-            <div className="small muted">{speech.listening ? 'Listening…' : 'Tap and speak'}</div>
+            <div className="small muted">{speech.listening ? t('Listening…') : t('Tap and speak')}</div>
           </>
         ) : (
-          <div className="notice">No voice input in this browser — type instead.</div>
+          <div className="notice">{t('No voice input in this browser — type instead.')}</div>
         )}
         {(speech.error || recorder.error || sttError) && <div className="error">{speech.error ?? recorder.error ?? sttError}</div>}
         {speech.listening && speech.interim && <div className="transcript"><span className="interim">{speech.interim}</span></div>}
         <label className="field" style={{ textAlign: 'left' }}>
-          {assistantOn ? 'What did you eat or train?' : 'Transcript'}
+          {assistantOn ? t('What did you eat or train?') : t('Transcript')}
           <textarea className="input" value={text} onChange={(e) => speech.setTranscript(e.target.value)}
             placeholder={placeholder ?? (assistantOn
-              ? 'Burrito bowl and a Coke Zero for lunch, then a 5 km run'
-              : '200 g chicken breast and a cup of rice')} />
+              ? t('Burrito bowl and a Coke Zero for lunch, then a 5 km run')
+              : t('200 g chicken breast and a cup of rice'))} />
         </label>
         {assistantOn ? (
           <>
             <button className="btn primary block" disabled={!text.trim() || !ready || busy} onClick={() => { if (speech.listening) speech.stop(); setAgentText(text.trim()); }}>
-              {ready ? 'Log it for me' : 'Loading catalog…'}
+              {ready ? t('Log it for me') : t('Loading catalog…')}
             </button>
-            <button className="btn ghost block" disabled={!text.trim() || !ready || busy} onClick={analyse}>Review matches myself instead</button>
+            <button className="btn ghost block" disabled={!text.trim() || !ready || busy} onClick={analyse}>{t('Review matches myself instead')}</button>
           </>
         ) : (
           <>
             <button className="btn primary block" disabled={!text.trim() || !ready || busy} onClick={analyse}>
-              {ready ? 'Find foods' : 'Loading catalog…'}
+              {ready ? t('Find foods') : t('Loading catalog…')}
             </button>
             <p className="tiny muted" style={{ margin: 0 }}>
-              Include amounts: “2 eggs”, “150 g salmon”.
+              {t('Include amounts: “2 eggs”, “150 g salmon”.')}
             </p>
           </>
         )}

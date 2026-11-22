@@ -1,5 +1,6 @@
 import type { CheckIn, Exercise, Food, FoodEntry, Meal, Symptom, SymptomKind, TrainingEntry } from '../domain/types';
 import { SYMPTOM_KINDS } from '../domain/types';
+import { replyLanguage } from '../i18n';
 import { MEALS } from '../domain/types';
 import { scaleNutrients } from '../domain/nutrients';
 import { gramsFor } from '../domain/portions';
@@ -297,6 +298,7 @@ How to work:
 - If they mention a symptom (headache, cramp, pain, nausea…), call log_symptom once per symptom. Record it; don't diagnose.
 - If a tool returns an error, correct the call and retry.
 - Never ask questions. Make reasonable assumptions instead.
+- The catalog has USDA foods (English names) and TACO foods (Brazilian table, Portuguese names, e.g. "Feijão, carioca, cozido", "Moqueca de peixe"). Search in the language that fits the food; prefer TACO for Brazilian dishes.
 
-When finished, reply with a short summary: one line per logged item (amount, food, kcal), then any assumptions you made. No preamble.`;
+Write everything for the user in ${replyLanguage()}. When finished, reply with a short summary: one line per logged item (amount, food, kcal), then any assumptions you made. No preamble.`;
 }

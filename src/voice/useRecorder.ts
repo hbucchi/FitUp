@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { t } from '../i18n';
 
 /** Records a voice note with MediaRecorder (works in all modern browsers, incl. Firefox). */
 export function useRecorder() {
@@ -28,7 +29,7 @@ export function useRecorder() {
       timer.current = window.setInterval(() => setSeconds((s) => s + 1), 1000);
       setRecording(true);
     } catch {
-      setError('Microphone access was blocked. Allow it in your browser settings.');
+      setError(t('Microphone access was blocked. Allow it in your browser settings.'));
     }
   }, []);
 

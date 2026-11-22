@@ -7,7 +7,9 @@ Training and nutrition for the classical physique. This is a local-first MVP: a 
 - **Profile:** weight, height, estimated body fat, age, sex, activity and focus. From these it derives lean mass, normalised FFMI, BMR (Katch–McArdle), maintenance energy (TDEE), daily macro targets, and the *path to the ideal* (the gap to a lean, natural FFMI target).
 - **Diary:** food by meal (breakfast, lunch, dinner, snacks, pre/post-workout) with time, quantity and unit (grams or the food's USDA household measures). Also training, a calorie ring, macro bars, and a full vitamin/mineral breakdown with %DV.
 - **Voice logging:** speak (or type) "for lunch I had 200 g of chicken breast, a cup of rice and two large eggs". The transcript is parsed into items, quantities, units, meal and time, then matched against the catalog. You review and adjust before anything is saved.
-- **Food catalog:** 7,770 foods from **USDA FoodData Central** (Foundation Foods + SR Legacy, public domain). SR Legacy is the USDA reference dataset that most consumer apps, MyFitnessPal included, built their generic foods on. You can also create your own foods per serving or per 100 g, with optional micronutrients.
+- **Food catalog:** 7,770 foods from **USDA FoodData Central** (Foundation Foods + SR Legacy, public domain). SR Legacy is the USDA reference dataset that most consumer apps, MyFitnessPal included, built their generic foods on. Plus 591 Brazilian foods from **TACO 4ª ed.** (NEPA/UNICAMP) with IBGE household measures (colher de sopa, concha, escumadeira…), and a moqueca de peixe calculated from TACO ingredients. You can also create your own foods per serving or per 100 g, with optional micronutrients.
+- **Barcode scanning:** scan a packaged food with the phone camera, or type the number. US/Canadian codes are looked up in **USDA Branded Foods** (label data from the manufacturers), everything else in **Open Food Facts** (crowd-sourced, labelled as such in the app). The product is saved to *My foods*; if neither source has it, you create it from the label.
+- **Languages:** English and Português (Brasil), switched in *Profile › Idioma* (first visit follows the phone's language). Portuguese also changes the voice parser (number words, "e meia", colher de sopa, concha), speech recognition (pt-BR), the AI's replies, and ranks TACO first in search.
 - **AI assistant (optional):** add a Claude or OpenAI API key in *Profile › Assistant*. Write or record what you ate or trained, and an agent searches your catalog with tools (`search_foods`, `log_food`, `create_food`, `search_exercises`, `log_training`) and logs it directly. Each item can be undone. Recorded or uploaded voice notes are transcribed by OpenAI or ElevenLabs Scribe (Claude's API doesn't take audio); live dictation uses the browser.
 - **Objective and ranks:** set a target physique (default: normalised FFMI 22.5 at 11 % body fat for men, 18.5 at 19 % for women). Progress is the share of the needed lean-mass gain plus fat loss you've achieved, and it moves you through Villager → Hardman → Soldier → General → Champion → Semi-god → God.
 - **Periodised programs (2–12 weeks):** Kickstart, Foundation (full body), Upper/Lower, Push/Pull/Legs and Lean Out (cut), plus sport and functional programs: Boxing, Football, Swimming dryland, Runner strength and Athletic. Every week is pre-designed. The weekly update, by rules or by the AI coach, only *chooses* which week runs next (progress, repeat, lighter, condensed, or skip a lighter week) from your adherence and strength trend.
@@ -63,6 +65,9 @@ npm run import:usda
 
 ```
 scripts/import-usda.mjs   USDA FDC → public/data/usda-foods.json (per 100 g, compact)
+scripts/import-taco.mjs   TACO 4ª ed. + IBGE measures → public/data/taco-foods.json
+scripts/i18n-keys.mjs     lists every translatable string; --missing shows gaps in src/i18n/pt.ts
+src/i18n/                 t(english) → Portuguese; the English text is the key
 src/domain/               pure logic: nutrients, body metrics, portions, exercises
 src/data/                 catalog loading, search engine, zustand store (localStorage)
 src/agent/                LLM agent loop (Claude Messages API / OpenAI Chat Completions), tools, transcription
@@ -72,4 +77,5 @@ src/ui/                   screens and components
 
 - **Storage:** zustand persisted to `localStorage`. The state shape maps directly onto Firestore collections (`users/{uid}/foodEntries`, …) for the Firebase Auth version.
 - **Transcription:** the browser's Web Speech API (Chrome/Edge/Safari) behind `useSpeech`. To support every browser and recorded audio uploads, swap in a server transcriber (e.g. Whisper behind a Firebase Function fed by `MediaRecorder`). The parser and matcher don't change.
-- **Search:** token matching with stemming, synonyms, USDA naming heuristics, a small popularity prior, and a boost for recently used foods.
+- **Search:** token matching with stemming, synonyms (including Portuguese → English, so USDA foods are findable in Portuguese), USDA naming heuristics, a small popularity prior, and a boost for recently used foods. In Portuguese, TACO ranks first and cooked staples beat raw ones ("feijão" → feijão carioca cozido).
+- **Translations:** `t('English text')` looks the string up in `src/i18n/pt.ts`. A test fails if any `t()` string, exercise, program or symptom has no Portuguese entry, or if a translation drops a `{placeholder}`.

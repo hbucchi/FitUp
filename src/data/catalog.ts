@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import type { Food } from '../domain/types';
 import type { Nutrients } from '../domain/nutrients';
 import { buildIndex, type SearchIndex } from './search';
@@ -10,6 +11,7 @@ interface RawFood {
   src: string;
   n: Nutrients;
   p: { l: string; g: number }[];
+  recipe?: string;
 }
 
 interface RawCatalog {
@@ -33,21 +35,24 @@ export function fromRaw(r: RawFood): Food {
     source: r.src,
     nutrients: r.n,
     portions: r.p.map((p) => ({ label: p.l, grams: p.g })),
+    ...(r.recipe && { recipe: r.recipe }),
   };
 }
 
 let cache: Promise<{ foods: Food[]; meta: CatalogMeta }> | null = null;
 
+async function loadFile(name: string): Promise<RawCatalog> {
+  const r = await fetch(`${import.meta.env.BASE_URL}data/${name}`);
+  if (!r.ok) throw new Error(t('Food catalog failed to load (HTTP {s})', { s: r.status }));
+  return r.json();
+}
+
+/** USDA FoodData Central + TACO (Brazil). */
 export function loadUsdaCatalog(): Promise<{ foods: Food[]; meta: CatalogMeta }> {
-  cache ??= fetch(`${import.meta.env.BASE_URL}data/usda-foods.json`)
-    .then((r) => {
-      if (!r.ok) throw new Error(`Food catalog failed to load (HTTP ${r.status})`);
-      return r.json() as Promise<RawCatalog>;
-    })
-    .then((raw) => ({
-      foods: raw.foods.map(fromRaw),
-      meta: { generatedAt: raw.generatedAt, license: raw.license, count: raw.foods.length },
-    }));
+  cache ??= Promise.all([loadFile('usda-foods.json'), loadFile('taco-foods.json').catch(() => null)]).then(([usda, taco]) => {
+    const foods = [...usda.foods, ...(taco?.foods ?? [])].map(fromRaw);
+    return { foods, meta: { generatedAt: usda.generatedAt, license: usda.license, count: foods.length } };
+  });
   cache.catch(() => (cache = null));
   return cache;
 }

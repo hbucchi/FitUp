@@ -1,4 +1,5 @@
 import type { Food } from '../domain/types';
+import { LOCALE, type Locale } from '../i18n';
 
 /**
  * Lightweight food search tuned for USDA-style names
@@ -36,9 +37,19 @@ const SYNONYMS: Record<string, string[]> = {
   lowfat: ['lowfat'],
   skim: ['nonfat'],
   skimmed: ['nonfat'],
+  // Portuguese → English, so USDA foods are findable in Portuguese too
+  ovo: ['egg'], arroz: ['rice'], frango: ['chicken'], leite: ['milk'], pao: ['bread'], feijao: ['bean'],
+  carne: ['beef'], peixe: ['fish'], batata: ['potato'], queijo: ['cheese'], cafe: ['coffee'], maca: ['apple'],
+  aveia: ['oat'], iogurte: ['yogurt'], azeite: ['oil', 'olive'], manteiga: ['butter'], salmao: ['salmon'],
+  atum: ['tuna'], camarao: ['shrimp'], porco: ['pork'], tomate: ['tomato'], cenoura: ['carrot'], alface: ['lettuce'],
+  brocolis: ['broccoli'], espinafre: ['spinach'], laranja: ['orange'], morango: ['strawberry'], uva: ['grape'],
+  abacate: ['avocado'], amendoim: ['peanut'], castanha: ['nut'], amendoa: ['almond'], acucar: ['sugar'],
+  mel: ['honey'], suco: ['juice'], agua: ['water'], cerveja: ['beer'], vinho: ['wine'], cozido: ['cooked', 'boiled'],
+  grelhado: ['grilled', 'broiled'], frito: ['fried'], assado: ['roasted', 'baked'], cru: ['raw'], integral: ['whole'],
+  peito: ['breast'], coxa: ['thigh'], file: ['fillet'], desnatado: ['nonfat', 'skim'], semidesnatado: ['reduced', 'lowfat'],
 };
 
-const STOP = new Set(['of', 'the', 'a', 'an', 'with', 'and', 'or', 'in', 'some', 'my', 'fresh']);
+const STOP = new Set(['of', 'the', 'a', 'an', 'with', 'and', 'or', 'in', 'some', 'my', 'fresh', 'de', 'do', 'da', 'dos', 'das', 'e', 'o', 'os', 'as', 'em', 'no', 'na']);
 
 export function normalize(s: string): string {
   return s
@@ -108,11 +119,42 @@ const COMMON: RegExp[] = [
   /^Beverages, Whey protein powder isolate/,
 ];
 
+/** TACO: processed forms ("pó" = powder) and staples nobody eats raw. */
+const UNCOMMON_PT = /(?<![a-zà-ú])(pó|desidratad[ao]s?|industrializad[ao]s?|conserva|instantâneo|congelad[ao]|xarope|glucose)(?![a-zà-ú])/i;
+const RAW_PT = /(?<![a-zà-ú])cru[as]?(?![a-zà-ú])/i;
+const COOKED_PT = /(?<![a-zà-ú])(cozid|assad|grelhad|frit|refogad)[ao]s?(?![a-zà-ú])/i;
+/** "Feijão, carioca, cru" → "Feijão, carioca": raw and cooked versions share the name before the last part. */
+const stemName = (name: string) => name.split(',').slice(0, -1).join(',').trim();
+
+/** Brazilian everyday staples (TACO names). */
+const COMMON_PT: RegExp[] = [
+  /^Arroz, tipo 1, cozido/, // "arroz" means white rice; "arroz integral" still finds brown by its words
+  /^Feijão, carioca, cozido/, // the most eaten bean nationally (preto leads in Rio)
+  /^Ovo, de galinha, inteiro, (cozido|frito)/,
+  /^Pão, trigo, francês/,
+  /^Frango, peito, sem pele, (grelhado|cozido)/,
+  /^Carne, bovina, (patinho|miolo de alcatra), sem gordura, grelhado/,
+  /^Banana, (prata|nanica), crua/,
+  /^Batata, inglesa, cozida/,
+  /^Mandioca, cozida/,
+  /^Mandioca, farofa, temperada/,
+  /^Cuscuz, de milho, cozido com sal/,
+  /^Queijo, minas, frescal/,
+  /^Café, infusão 10%/,
+  /^Iogurte, natural$/,
+  /^Aveia, flocos, crua/,
+];
+
+/** USDA foods that fill gaps in TACO (it leaves fluid milk blank) — ranked like TACO in Portuguese. */
+const FILLS_PT: RegExp[] = [/^Milk, (whole, 3\.25%|reduced fat, fluid, 2%|lowfat, fluid, 1%|nonfat, fluid)/];
+
 interface Indexed {
   food: Food;
   tokens: string[];
   head: Set<string>; // tokens of the leading descriptive segment(s)
   prior: number;
+  /** TACO, or a USDA food standing in for a TACO gap */
+  brazil: boolean;
 }
 
 export interface SearchIndex {
@@ -120,6 +162,8 @@ export interface SearchIndex {
 }
 
 export function buildIndex(foods: Food[]): SearchIndex {
+  // TACO foods that also come cooked: the raw version is rarely what people mean (rice, beans, pão de queijo)
+  const cookedToo = new Set(foods.filter((f) => f.source.startsWith('TACO') && COOKED_PT.test(f.name)).map((f) => stemName(f.name)));
   return {
     items: foods.map((food) => {
       const segs = food.name.split(',').map((x) => x.trim());
@@ -127,7 +171,13 @@ export function buildIndex(foods: Food[]): SearchIndex {
       let prior = 0;
       if (UNCOMMON.test(food.name)) prior -= 0.2;
       if (COMMON.some((r) => r.test(food.name))) prior += 0.45;
-      return { food, tokens: tokenize(food.name), head: new Set(tokenize(headSegs.join(' '))), prior };
+      if (food.source.startsWith('TACO')) {
+        if (UNCOMMON_PT.test(food.name)) prior -= 0.2;
+        if (RAW_PT.test(food.name) && cookedToo.has(stemName(food.name))) prior -= 0.15;
+        if (COMMON_PT.some((r) => r.test(food.name))) prior += 0.25;
+      }
+      const brazil = food.source.startsWith('TACO') || FILLS_PT.some((r) => r.test(food.name));
+      return { food, tokens: tokenize(food.name), head: new Set(tokenize(headSegs.join(' '))), prior, brazil };
     }),
   };
 }
@@ -151,6 +201,8 @@ export interface SearchOptions {
   limit?: number;
   /** extra score per food id (recency, user foods, …) */
   boost?: Record<string, number>;
+  /** ranks the Brazilian table first for 'pt' (default: the app language) */
+  lang?: Locale;
 }
 
 export interface SearchHit {
@@ -159,7 +211,7 @@ export interface SearchHit {
 }
 
 export function search(index: SearchIndex, query: string, opts: SearchOptions = {}): SearchHit[] {
-  const { limit = 30, boost = {} } = opts;
+  const { limit = 30, boost = {}, lang = LOCALE } = opts;
   const groups = expandQuery(tokenize(query));
   if (groups.length === 0) return [];
   const hits: SearchHit[] = [];
@@ -180,6 +232,8 @@ export function search(index: SearchIndex, query: string, opts: SearchOptions = 
     score += it.prior;
     if (it.food.source === 'USDA Foundation') score += 0.05;
     if (it.food.source === 'Custom') score += 0.25;
+    // Brazilian table first in Portuguese, USDA first in English
+    if (it.brazil) score += lang === 'pt' ? 0.4 : it.food.source.startsWith('TACO') ? -0.05 : 0;
     if (/\braw\b/i.test(it.food.name) && it.tokens.length <= 4) score += 0.05;
     score += boost[it.food.id] ?? 0;
     hits.push({ food: it.food, score });
