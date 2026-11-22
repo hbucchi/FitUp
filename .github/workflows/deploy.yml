@@ -1,0 +1,58 @@
+# Builds, tests and deploys Micenae to Firebase (hosting + Firestore rules).
+# Run it from your phone: GitHub app or github.com → Actions → "Deploy to Firebase" → Run workflow.
+# Needs one repository secret: FIREBASE_SERVICE_ACCOUNT (the service-account JSON key).
+name: Deploy to Firebase
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency:
+  group: firebase-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # the Firestore emulator (security-rules tests) needs Java
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - run: npm ci
+      - name: Unit tests
+        run: npm test
+      - name: Security-rules tests
+        run: npm run test:rules
+      - name: Build
+        run: npm run build
+
+      - name: Check the deploy key is set
+        env:
+          KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::error::Add the FIREBASE_SERVICE_ACCOUNT secret (Settings → Secrets and variables → Actions). See README › Deploying."
+            exit 1
+          fi
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Deploy hosting and Firestore rules
+        run: npx firebase deploy --only hosting,firestore --project micenae-ef391 --non-interactive

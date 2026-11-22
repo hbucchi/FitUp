@@ -33,6 +33,15 @@ npm run upload:foods -- --key path/to/service-account.json   # USDA catalog → 
 
 The food catalog also lives in Firestore (`foods/{id}` plus `catalog/usda` metadata), readable by signed-in users and writable only by the admin upload script. The app still searches its downloaded copy of the same data, because loading 7,770 documents on every app start would use up the free daily read quota in a few launches.
 
+## Deploying (from your phone)
+
+`.github/workflows/deploy.yml` builds, tests (unit + security rules) and deploys hosting and Firestore rules. Run it from GitHub: **Actions → Deploy to Firebase → Run workflow**. In the GitHub app or in your phone's browser, that's a few taps. Pushes to `main` deploy automatically.
+
+One-time setup:
+1. **Key:** Firebase console → Project settings → Service accounts → *Generate new private key* (or reuse the one from `upload:foods`).
+2. **Secret:** GitHub → this repo → Settings → Secrets and variables → Actions → *New repository secret*. Name it `FIREBASE_SERVICE_ACCOUNT` and paste the whole JSON file as the value.
+3. **Permissions:** Google Cloud console → IAM → the `firebase-adminsdk-…` service account → add the role **Firebase Admin**.
+
 ## Develop
 
 ```bash
