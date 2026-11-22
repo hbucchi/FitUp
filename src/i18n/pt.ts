@@ -800,4 +800,5 @@ export const PT: Record<string, string> = {
   '{who} coach': 'Treinador {who}',
   'AI estimate': 'Estimativa da IA',
   'Allow AI estimates for foods not in the database': 'Permitir estimativas da IA para alimentos fora do banco de dados',
+  'Comparing database foods matching {p}': 'Comparando alimentos do banco que correspondem a {p}',
 };

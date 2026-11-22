@@ -38,6 +38,19 @@ describe('tools', () => {
     // nutrients come from the database record, scaled by grams
     expect(e.nutrients.kcal).toBeCloseTo((banana.nutrients.kcal! * e.grams) / 100);
   });
+  test('regex_foods lists every variant, accent-insensitive, and makes them loggable', () => {
+    const c = { ...ctx(), seen: new Set<string>() };
+    const r = executeTool('regex_foods', { pattern: '^bananas?, ', exclude: 'dehydrated|powder' }, c) as any;
+    expect(r.total).toBeGreaterThan(1);
+    expect(r.matches[0].name).toBe('Bananas, raw'); // shortest name first
+    expect(r.matches.every((m: any) => !/dehydrated|powder/i.test(m.name))).toBe(true);
+    executeTool('log_food', { said: 'banana', food_id: r.matches[0].id, quantity: 100, unit: 'g', meal: 'snack' }, c);
+    expect(useStore.getState().foodEntries).toHaveLength(1);
+  });
+  test('regex_foods rejects broken or explosive patterns with a fixable error', () => {
+    expect(() => executeTool('regex_foods', { pattern: '([a-z' }, ctx())).toThrow(/Invalid pattern/);
+    expect(() => executeTool('regex_foods', { pattern: '(a+)+$' }, ctx())).toThrow(/nested repetition/);
+  });
   test('estimates are off unless allowed', () => {
     const args = { name: 'Burrito bowl', serving_label: 'bowl', serving_grams: 500, kcal: 750, protein_g: 45, carbs_g: 80, fat_g: 25 };
     expect(() => executeTool('create_food', args, ctx())).toThrow(/Estimates are turned off/);

@@ -11,7 +11,8 @@ import { useExercises } from './TrainingLog';
 import { t } from '../../i18n';
 
 const TOOL_LABEL: Record<string, (i: any) => string> = {
-  search_foods: (i) => t('Searching foods for “{q}”', { q: i.query }),
+  search_foods: (i) => t('Searching foods for “{q}”', { q: (Array.isArray(i.queries) ? i.queries[0] : i.query) ?? '' }),
+  regex_foods: (i) => t('Comparing database foods matching {p}', { p: String(i.pattern ?? '') }),
   log_food: (i) => t('Logging {amount}', { amount: `${i.quantity} ${i.unit === 'g' ? 'g' : `× ${i.unit}`}` }),
   create_food: (i) => t('Creating “{name}” (estimate)', { name: i.name }),
   search_exercises: (i) => t('Searching exercises for “{q}”', { q: i.query }),

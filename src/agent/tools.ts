@@ -56,9 +56,22 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
+    name: 'regex_foods',
+    description:
+      "List EVERY database food whose name matches a regular expression (case- and accent-insensitive), to compare variants side by side before choosing — e.g. \"^Feijão, .*cozido\", \"^Chicken, .*breast.*(grilled|roasted)\", \"^Rice, (white|brown).*cooked\". Names look like \"Egg, whole, cooked, scrambled\" (USDA) or \"Arroz, tipo 1, cozido\" (TACO). Returns up to 40 matches (shortest names first) with nutrients per 100 g and portion labels, plus the total count; narrow the pattern if there are too many.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        pattern: { type: 'string', description: 'JavaScript regular expression, matched against the food name' },
+        exclude: { type: 'string', description: 'Optional regular expression; names matching it are dropped (e.g. "raw|cru|dry|powder")' },
+      },
+      required: ['pattern'],
+    },
+  },
+  {
     name: 'log_food',
     description:
-      "Write one food entry to the diary. food_id MUST be an id returned by search_foods in this conversation — nutrients are taken from that database record. `unit` must be 'g' or EXACTLY one of that food's portion labels; quantity is how many of that unit.",
+      "Write one food entry to the diary. food_id MUST be an id returned by search_foods or regex_foods in this conversation — nutrients are taken from that database record. `unit` must be 'g' or EXACTLY one of that food's portion labels; quantity is how many of that unit.",
     input_schema: {
       type: 'object',
       properties: {
@@ -171,6 +184,29 @@ function describeFood(f: Food) {
 
 export class ToolError extends Error {}
 
+const stripAccents = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+/**
+ * A food-name matcher from a model-written pattern: case-insensitive, and accent-insensitive
+ * ("feijao" finds "Feijão"). Length-capped and checked for nested quantifiers, which are the
+ * patterns that can take exponential time; names are short, so anything else runs instantly.
+ */
+export function foodRegex(raw: unknown, field: string): (name: string) => boolean {
+  const pattern = String(raw ?? '').trim();
+  if (!pattern) throw new ToolError(`${field} is empty.`);
+  if (pattern.length > 200) throw new ToolError(`${field} is too long (max 200 characters).`);
+  if (/\([^)]*[+*][^)]*\)[+*{]/.test(pattern)) throw new ToolError(`${field} has a nested repetition like (a+)+ — simplify it.`);
+  let exact: RegExp;
+  let plain: RegExp;
+  try {
+    exact = new RegExp(pattern, 'i');
+    plain = new RegExp(stripAccents(pattern), 'i');
+  } catch (e) {
+    throw new ToolError(`Invalid ${field}: ${(e as Error).message}`);
+  }
+  return (name) => exact.test(name) || plain.test(stripAccents(name));
+}
+
 /** Runs every phrasing, keeps each food's best score, and returns the top 10 database records. */
 export function searchMany(ctx: Pick<AgentContext, 'index' | 'boost' | 'created'>, queries: string[], limit = 10): Food[] {
   const best = new Map<string, { food: Food; score: number }>();
@@ -198,13 +234,32 @@ export function executeTool(name: string, input: Input, ctx: AgentContext): unkn
       foods.forEach((f) => ctx.seen?.add(f.id));
       return foods.length
         ? { matches: foods.map(describeFood) }
-        : { matches: [], hint: 'Nothing in the database. Try shorter, more generic names (e.g. "beans cooked", "feijão cozido").' };
+        : { matches: [], hint: 'Nothing in the database. Try shorter, more generic names (e.g. "beans cooked", "feijão cozido") or regex_foods.' };
+    }
+    case 'regex_foods': {
+      const include = foodRegex(input.pattern, 'pattern');
+      const exclude = input.exclude ? foodRegex(input.exclude, 'exclude') : null;
+      const foods = [...ctx.created.values(), ...ctx.byId.values()];
+      const hits = foods.filter((f) => include(f.name) && !exclude?.(f.name));
+      hits.sort((a, b) => a.name.length - b.name.length || a.name.localeCompare(b.name));
+      const shown = hits.slice(0, 40);
+      shown.forEach((f) => ctx.seen?.add(f.id));
+      return {
+        total: hits.length,
+        matches: shown.map((f) => ({
+          id: f.id, name: f.name, source: f.source,
+          per_100g: { kcal: r1(f.nutrients.kcal), protein_g: r1(f.nutrients.protein), carbs_g: r1(f.nutrients.carbs), fat_g: r1(f.nutrients.fat) },
+          portions: f.portions.slice(0, 8).map((p) => p.label),
+        })),
+        ...(hits.length > 40 ? { hint: `${hits.length} matches — showing the 40 shortest names. Narrow the pattern to see the rest.` } : {}),
+        ...(hits.length === 0 ? { hint: 'No names match. Loosen the pattern (fewer words, use .* between them) or try the other language.' } : {}),
+      };
     }
     case 'log_food': {
       const f = food(String(input.food_id));
       if (!f) throw new ToolError(`Unknown food_id "${input.food_id}". Use an id returned by search_foods or create_food.`);
       if (ctx.seen && !ctx.seen.has(f.id) && !ctx.created.has(f.id))
-        throw new ToolError(`"${f.name}" was not returned by search_foods in this conversation. Search for it first, then log an id from the results.`);
+        throw new ToolError(`"${f.name}" was not returned by search_foods or regex_foods in this conversation. Search for it first, then log an id from the results.`);
       const unit = String(input.unit);
       if (unit !== 'g' && !f.portions.some((p) => p.label === unit))
         throw new ToolError(`Invalid unit "${unit}" for this food. Valid units: ${['g', ...f.portions.map((p) => p.label)].map((u) => `"${u}"`).join(', ')}`);
@@ -328,7 +383,8 @@ How to work:
 - Split the description into individual foods and exercises. Log each one exactly once. Mixed items become separate foods ("coffee with milk" → coffee + milk; "arroz e feijão" → arroz + feijão), but keep named dishes whole (moqueca, lasagna, burrito).
 - NEVER log a food from memory. For every food, call search_foods (one food per call; several calls in parallel are fine) with 2–4 phrasings: the user's words, then generic database names in English (USDA style: "chicken breast grilled", "rice white cooked") and/or Portuguese (TACO style: "frango peito grelhado", "arroz tipo 1 cozido").
 - Choose from the returned records only. The record must be the same food AND preparation: chicken breast ≠ chicken liver, cooked ≠ raw ≠ dry/powder, whole milk ≠ milk chocolate. If unstated, assume the form normally eaten: cooked meat, fish, rice, beans and pasta; raw fruit; brewed coffee. Check that the per-100 g values make sense for the food.
-- If no record fits, search again with different, simpler words (at most 3 searches for one food).${ctx.allowEstimates ? `
+- To compare variants, call regex_foods with a pattern on the database names (e.g. "^Feijão, .*cozido", "^Chicken, .*breast.*(grilled|roasted)", exclude "raw|dry") and choose the best record from the full list — useful when search_foods' top results are close, or to see every preparation of a food.
+- If no record fits, search again with different, simpler words or a looser pattern (at most 3 searches for one food).${ctx.allowEstimates ? `
 - Only when 3 searches found nothing suitable (a restaurant dish or branded product), call create_food with a careful per-serving estimate and say in the summary that it is an estimate.` : `
 - If 3 searches find nothing suitable, do NOT log it and do not estimate it. List it under "Not found in the database" in your summary so the user can scan or add it.`}
 - Amounts: when the user names a household measure (a cup, 2 slices, a large egg, uma concha, 2 colheres de sopa), log with the matching portion label from that record. Otherwise log in grams, converting units yourself (1 oz = 28.35 g, 1 lb = 453.6 g, ml ≈ g for drinks). If no amount is given, assume one typical portion and say so.
