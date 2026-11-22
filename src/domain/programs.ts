@@ -164,106 +164,91 @@ const PPL: SessionTemplate[] = [
 const HEAVY: SlotOpts = { reps: [3, 6] };
 
 const BOXING: SessionTemplate[] = [
-  { key: 'BX1', title: 'Power & lower body', slots: [['jumpVert', 3, 0, { reps: [3, 5] }], ['jumpLoaded', 3, 0, { reps: [4, 6], note: 'Light bar (~30 % of your squat). Jump as high and fast as possible.' }], ['squat', 3, 0, HEAVY], ['slHinge', 2, 0, { reps: [6, 8] }], ['antiRot', 2], ['neck', 2, 0, { reps: [12, 15] }]] },
-  { key: 'BX2', title: 'Upper body & rounds', slots: [['rotPower', 3, 0, { reps: [4, 6], note: 'Each side. Rotate from the hips, as in a hook.' }], ['pushPress', 3, 0, { reps: [3, 5] }], ['pullup', 3], ['landminePress', 2, 0, { reps: [6, 8] }], ['cuff', 2, 0, { reps: [12, 15] }], ['bagRounds', 4, 0, { workSec: 180, restSec: 60, note: 'Heavy bag: crisp combinations, move between punches.' }]] },
-  { key: 'BX3', title: 'Explosive conditioning', slots: [['swing', 3, 0, { reps: [8, 10] }], ['slam', 3, 0, { reps: [5, 6] }], ['lunge', 3, 0, { reps: [6, 8] }], ['row', 3, 0, { reps: [6, 8] }], ['antiRot', 2, 1], ['shadow', 6, 0, { workSec: 120, restSec: 60, note: 'Shadowboxing or rope at fight pace.' }]] },
+  { key: 'BX1', title: 'Power & lower body', slots: [['jumpVert', 3, 0, { reps: [3, 5] }], ['jumpLoaded', 3, 0, { reps: [4, 6], note: 'Light bar, ~30 % of your squat' }], ['squat', 3, 0, HEAVY], ['slHinge', 2, 0, { reps: [6, 8] }], ['antiRot', 2], ['neck', 2, 0, { reps: [12, 15] }]] },
+  { key: 'BX2', title: 'Upper body & rounds', slots: [['rotPower', 3, 0, { reps: [4, 6], note: 'Each side' }], ['pushPress', 3, 0, { reps: [3, 5] }], ['pullup', 3], ['landminePress', 2, 0, { reps: [6, 8] }], ['cuff', 2, 0, { reps: [12, 15] }], ['bagRounds', 4, 0, { workSec: 180, restSec: 60, note: 'Heavy bag' }]] },
+  { key: 'BX3', title: 'Explosive conditioning', slots: [['swing', 3, 0, { reps: [8, 10] }], ['slam', 3, 0, { reps: [5, 6] }], ['lunge', 3, 0, { reps: [6, 8] }], ['row', 3, 0, { reps: [6, 8] }], ['antiRot', 2, 1], ['shadow', 6, 0, { workSec: 120, restSec: 60, note: 'Shadowbox or rope, fight pace' }]] },
 ];
 
 const FOOTBALL: SessionTemplate[] = [
-  { key: 'FB1', title: 'Strength & power', slots: [['jumpVert', 3, 0, { reps: [3, 5] }], ['squat', 3, 0, HEAVY], ['hipThrust', 3, 0, { reps: [5, 8] }], ['nordic', 2, 0, { reps: [4, 6], note: 'Lower as slowly as you can; catch yourself with your hands.' }], ['copenhagen', 2, 0, { reps: [15, 30], note: 'Seconds per side. Start with the knee on the bench, progress to the foot.' }], ['calf', 3, 0, { reps: [8, 12] }]] },
-  { key: 'FB2', title: 'Speed & change of direction', slots: [['jumpHoriz', 3, 0, { reps: [3, 5] }], ['reactive', 2, 0, { reps: [10, 15] }], ['rsa', 6, 0, { workSec: 6, restSec: 24, note: 'All-out 20–30 m sprints or 5-10-5 shuttles. Full intent every rep.' }], ['slHinge', 3, 0, { reps: [6, 8] }], ['antiRot', 2]] },
-  { key: 'FB3', title: 'Upper body & robustness', slots: [['hPress', 3, 0, { reps: [6, 8] }], ['pullup', 3], ['row', 2, 1, { reps: [8, 10] }], ['nordic', 2, 0, { reps: [4, 6] }], ['copenhagen', 2], ['longIntervals', 4, 0, { workSec: 240, restSec: 180, note: 'Hard but sustainable — about 90 % of max heart rate.' }]] },
+  { key: 'FB1', title: 'Strength & power', slots: [['jumpVert', 3, 0, { reps: [3, 5] }], ['squat', 3, 0, HEAVY], ['hipThrust', 3, 0, { reps: [5, 8] }], ['nordic', 2, 0, { reps: [4, 6], note: 'Lower slowly' }], ['copenhagen', 2, 0, { reps: [15, 30], note: 'Seconds per side' }], ['calf', 3, 0, { reps: [8, 12] }]] },
+  { key: 'FB2', title: 'Speed & change of direction', slots: [['jumpHoriz', 3, 0, { reps: [3, 5] }], ['reactive', 2, 0, { reps: [10, 15] }], ['rsa', 6, 0, { workSec: 6, restSec: 24, note: 'All-out 20–30 m sprints' }], ['slHinge', 3, 0, { reps: [6, 8] }], ['antiRot', 2]] },
+  { key: 'FB3', title: 'Upper body & robustness', slots: [['hPress', 3, 0, { reps: [6, 8] }], ['pullup', 3], ['row', 2, 1, { reps: [8, 10] }], ['nordic', 2, 0, { reps: [4, 6] }], ['copenhagen', 2], ['longIntervals', 4, 0, { workSec: 240, restSec: 180, note: 'Hard, ~90 % max heart rate' }]] },
 ];
 
 const SWIM: SessionTemplate[] = [
-  { key: 'SW1', title: 'Pull & shoulder health', slots: [['pullup', 3], ['saPull', 3, 0, { reps: [10, 12] }], ['row', 3, 1, { reps: [8, 10] }], ['cuff', 3, 0, { reps: [15, 20], note: 'Light band, high reps — rotator-cuff endurance.' }], ['scap', 2, 0, { reps: [15, 20] }], ['antiRot', 2, 1]] },
+  { key: 'SW1', title: 'Pull & shoulder health', slots: [['pullup', 3], ['saPull', 3, 0, { reps: [10, 12] }], ['row', 3, 1, { reps: [8, 10] }], ['cuff', 3, 0, { reps: [15, 20], note: 'Light band' }], ['scap', 2, 0, { reps: [15, 20] }], ['antiRot', 2, 1]] },
   { key: 'SW2', title: 'Legs & power (starts and turns)', slots: [['jumpVert', 3, 1, { reps: [3, 5] }], ['jumpHoriz', 3, 0, { reps: [3, 5] }], ['squat', 3, 0, { reps: [5, 8] }], ['hinge', 3, 0, { reps: [6, 8] }], ['calf', 2], ['antiRot', 2]] },
-  { key: 'SW3', title: 'Full body & core', slots: [['landminePress', 3, 0, { reps: [8, 10] }], ['vPull', 3, 2], ['pushup', 2], ['cuff', 2, 1, { reps: [12, 15] }], ['tgu', 2, 0, { reps: [2, 3], note: 'Per side, slow and controlled.' }], ['swim', 1, 0, { minutes: 30, note: 'Aerobic swim set at a steady pace.' }]] },
+  { key: 'SW3', title: 'Full body & core', slots: [['landminePress', 3, 0, { reps: [8, 10] }], ['vPull', 3, 2], ['pushup', 2], ['cuff', 2, 1, { reps: [12, 15] }], ['tgu', 2, 0, { reps: [2, 3], note: 'Per side' }], ['swim', 1, 0, { minutes: 30, note: 'Steady pace' }]] },
 ];
 
 const RUNNING: SessionTemplate[] = [
-  { key: 'RN1', title: 'Strength A', slots: [['squat', 3, 0, HEAVY], ['hinge', 3, 0, { reps: [4, 6] }], ['reactive', 3, 0, { reps: [10, 15] }], ['calf', 3, 0, { reps: [6, 10], note: 'Heavy, slow lowering.' }], ['antiRot', 2]] },
-  { key: 'RN2', title: 'Easy run', slots: [['easyRun', 1, 0, { minutes: 30, note: 'Conversational pace.' }]] },
-  { key: 'RN3', title: 'Intervals', slots: [['longIntervals', 5, 0, { workSec: 180, restSec: 120, note: 'Hard, controlled — about 5 km race pace.' }]] },
+  { key: 'RN1', title: 'Strength A', slots: [['squat', 3, 0, HEAVY], ['hinge', 3, 0, { reps: [4, 6] }], ['reactive', 3, 0, { reps: [10, 15] }], ['calf', 3, 0, { reps: [6, 10], note: 'Heavy' }], ['antiRot', 2]] },
+  { key: 'RN2', title: 'Easy run', slots: [['easyRun', 1, 0, { minutes: 30, note: 'Easy pace' }]] },
+  { key: 'RN3', title: 'Intervals', slots: [['longIntervals', 5, 0, { workSec: 180, restSec: 120, note: '5 km race pace' }]] },
   { key: 'RN4', title: 'Strength B', slots: [['lunge', 3, 0, { reps: [5, 8] }], ['hipThrust', 3, 0, HEAVY], ['jumpVert', 3, 0, { reps: [3, 5] }], ['nordic', 2, 0, { reps: [4, 6] }], ['calf', 3, 1, { reps: [8, 12] }]] },
-  { key: 'RN5', title: 'Long run', slots: [['easyRun', 1, 0, { minutes: 50, note: 'Easy, steady. Build distance slowly.' }]] },
+  { key: 'RN5', title: 'Long run', slots: [['easyRun', 1, 0, { minutes: 50, note: 'Easy pace' }]] },
 ];
 
 const ATHLETIC: SessionTemplate[] = [
-  { key: 'AT1', title: 'Athletic A', slots: [['jumpVert', 3, 0, { reps: [3, 5] }], ['squat', 3, 0, { reps: [5, 8] }], ['pullup', 3], ['carry', 3, 0, { reps: [30, 40], note: 'Metres per set, heavy.' }], ['antiRot', 2], ['circuit', 4, 0, { workSec: 40, restSec: 20, note: 'Swings, burpees, mountain climbers, rope — rotate.' }]] },
-  { key: 'AT2', title: 'Athletic B', slots: [['rotPower', 3, 0, { reps: [4, 6] }], ['slHinge', 3, 0, { reps: [6, 8] }], ['landminePress', 3, 0, { reps: [6, 8] }], ['row', 3, 0, { reps: [8, 10] }], ['tgu', 2, 0, { reps: [2, 3] }], ['sled', 4, 0, { reps: [15, 20], note: 'Metres per push.' }]] },
+  { key: 'AT1', title: 'Athletic A', slots: [['jumpVert', 3, 0, { reps: [3, 5] }], ['squat', 3, 0, { reps: [5, 8] }], ['pullup', 3], ['carry', 3, 0, { reps: [30, 40], note: 'Metres per set' }], ['antiRot', 2], ['circuit', 4, 0, { workSec: 40, restSec: 20, note: 'Swings, burpees, rope' }]] },
+  { key: 'AT2', title: 'Athletic B', slots: [['rotPower', 3, 0, { reps: [4, 6] }], ['slHinge', 3, 0, { reps: [6, 8] }], ['landminePress', 3, 0, { reps: [6, 8] }], ['row', 3, 0, { reps: [8, 10] }], ['tgu', 2, 0, { reps: [2, 3] }], ['sled', 4, 0, { reps: [15, 20], note: 'Metres per push' }]] },
   { key: 'AT3', title: 'Athletic C', slots: [['jumpHoriz', 3, 0, { reps: [3, 5] }], ['swing', 3, 0, { reps: [10, 12] }], ['lunge', 3, 0, { reps: [8, 10] }], ['pushup', 3], ['nordic', 2, 0, { reps: [4, 6] }], ['rsa', 6, 1, { workSec: 15, restSec: 45 }]] },
 ];
 
 export const PROGRAMS: Program[] = [
   {
     id: 'kickstart', name: 'Kickstart', tagline: '2 weeks · 3 days · full body', category: 'physique',
-    description: 'A short on-ramp: learn the main lifts, find your working weights and build the habit before a longer block.',
+    description: 'Learn the lifts and build the habit.',
     goal: ['cut', 'recomp', 'build'], level: 'all', daysPerWeek: 3, minWeeks: 2, maxWeeks: 2, defaultWeeks: 2, sessions: FULL_BODY, condensed: FULL_BODY_2,
   },
   {
     id: 'foundation', name: 'Foundation', tagline: 'Full body · 3 days', category: 'physique',
-    description: 'Each muscle twice or more a week with moderate volume. The best start for newer lifters, or for a busy schedule.',
+    description: 'Best start for newer lifters.',
     goal: ['recomp', 'build'], level: 'novice', daysPerWeek: 3, minWeeks: 4, maxWeeks: 12, defaultWeeks: 8, sessions: FULL_BODY, condensed: FULL_BODY_2,
   },
   {
     id: 'upper-lower', name: 'Hypertrophy — Upper / Lower', tagline: 'Upper/lower · 4 days', category: 'physique',
-    description: 'The workhorse split: 2× frequency per muscle, volume building through each block, rep ranges rotating weekly.',
+    description: 'The classic muscle-building split.',
     goal: ['recomp', 'build'], level: 'intermediate', daysPerWeek: 4, minWeeks: 4, maxWeeks: 12, defaultWeeks: 8, sessions: UPPER_LOWER, condensed: FULL_BODY,
   },
   {
     id: 'ppl', name: 'Hypertrophy — Push / Pull / Legs', tagline: 'PPL · 6 days', category: 'physique',
-    description: 'Highest volume. Each muscle twice a week with room for more sets — for trained lifters who recover well.',
+    description: 'Highest volume, for trained lifters.',
     goal: ['build'], level: 'intermediate', daysPerWeek: 6, minWeeks: 6, maxWeeks: 12, defaultWeeks: 12, sessions: PPL, condensed: UPPER_LOWER,
   },
   {
     id: 'lean-out', name: 'Lean Out', tagline: 'Upper/lower · 4 days + cardio', category: 'physique',
-    description: "Keep the muscle while the fat comes off: keep loads heavy, hold volume moderate and add easy cardio that doesn't compete with lifting.",
+    description: 'Keep the muscle while the fat comes off.',
     goal: ['cut'], level: 'all', daysPerWeek: 4, minWeeks: 4, maxWeeks: 12, defaultWeeks: 8, sessions: UPPER_LOWER, condensed: FULL_BODY, cut: true, cardioPerWeek: 2,
   },
   {
     id: 'boxing', name: 'Boxing S&C', tagline: 'Sport · 3 days alongside boxing', category: 'sport',
-    description: 'Harder punches start in the legs: lower-body strength and power, rotational power, shoulder and neck robustness, and fight-specific rounds.',
+    description: 'Leg power, rotation and fight-pace rounds.',
     goal: ['cut', 'recomp', 'build'], level: 'all', daysPerWeek: 3, minWeeks: 4, maxWeeks: 12, defaultWeeks: 8, sessions: BOXING, condensed: BOXING.slice(0, 2),
-    notes: [
-      'Lower-body strength and power are the qualities most strongly linked to punch impact.',
-      'Keep heavy leg work and the power day away from hard sparring — leg fatigue reduces punch force.',
-      'Power work: full recovery between sets, stop the set when speed drops.',
-    ],
+    notes: ['Keep leg days away from hard sparring.'],
   },
   {
     id: 'football', name: 'Football (soccer) S&C', tagline: 'Sport · 3 days alongside football', category: 'sport',
-    description: 'Speed, power and repeated sprints, plus the two exercises with the best injury-prevention evidence in football: Nordic hamstring curls and Copenhagen adductor planks.',
+    description: 'Speed, power and injury-proofing.',
     goal: ['cut', 'recomp', 'build'], level: 'all', daysPerWeek: 3, minWeeks: 4, maxWeeks: 12, defaultWeeks: 8, sessions: FOOTBALL, condensed: FOOTBALL.slice(0, 2),
-    notes: [
-      'Do the FIFA 11+ warm-up (about 20 minutes) before team training at least twice a week — it cuts injuries by roughly a third.',
-      'Programs with Nordic curls roughly halve hamstring injuries; Copenhagen planks cut groin problems by about 40 %.',
-      'In-season, drop to the condensed week and keep sessions 2+ days before a match.',
-    ],
+    notes: ['Do the FIFA 11+ warm-up before team training.'],
   },
   {
     id: 'swimming', name: 'Swimming dryland', tagline: 'Sport · 3 days alongside swimming', category: 'sport',
-    description: 'Pulling strength, leg power for starts and turns, a strong trunk and rotator-cuff endurance to keep shoulders healthy.',
+    description: 'Pulling strength, power and healthy shoulders.',
     goal: ['cut', 'recomp', 'build'], level: 'all', daysPerWeek: 3, minWeeks: 4, maxWeeks: 12, defaultWeeks: 8, sessions: SWIM, condensed: SWIM.slice(0, 2),
-    notes: [
-      'Swimming plus strength training beats swimming alone for performance.',
-      'Rotator-cuff work is light and high-rep: it builds endurance and balance between the shoulder rotators.',
-    ],
+    notes: ['Shoulder work: light band, high reps.'],
   },
   {
     id: 'running', name: 'Runner strength', tagline: 'Sport · 2 strength + 3 runs', category: 'sport',
-    description: 'Heavy strength and plyometrics improve running economy — you use less energy at the same pace. Runs build progressively around them.',
+    description: 'Run more efficiently with heavy strength work.',
     goal: ['cut', 'recomp', 'build'], level: 'all', daysPerWeek: 5, minWeeks: 6, maxWeeks: 12, defaultWeeks: 10, sessions: RUNNING, condensed: [RUNNING[0], RUNNING[2], RUNNING[4]],
-    notes: [
-      'Heavy strength (3–6 reps) improved running economy more than plyometrics alone; benefits build over 10+ weeks.',
-      'Keep strength days on different days from intervals, or at least 6 hours apart.',
-    ],
+    notes: ['Keep strength and interval days apart.'],
   },
   {
     id: 'athletic', name: 'Athletic & functional', tagline: 'Function · 3 days', category: 'sport',
-    description: 'All-round athleticism: jumps, throws, carries, single-leg strength, get-ups and conditioning circuits — strong, fast and robust.',
+    description: 'Strong, fast and robust all round.',
     goal: ['cut', 'recomp', 'build'], level: 'all', daysPerWeek: 3, minWeeks: 4, maxWeeks: 12, defaultWeeks: 8, sessions: ATHLETIC, condensed: ATHLETIC.slice(0, 2),
-    notes: ['Neuromuscular training — strength, balance, agility — is what sports-medicine guidance recommends for preventing injuries.'],
   },
 ];
 
@@ -400,7 +385,7 @@ function cutCardio(stepIdx: number, structureLen: number, deload: boolean, i: nu
   return {
     exerciseId: id, name: EXERCISE_NAME.get(id) ?? id, kind: 'cardio', sets: 1, repsMin: 0, repsMax: 0, rir: 0, restSec: 0,
     minutes: deload ? Math.round(minutes * 0.6) : minutes,
-    note: 'Easy pace — you should be able to talk.',
+    note: 'Easy pace',
   };
 }
 

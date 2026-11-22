@@ -47,7 +47,7 @@ export function FoodSearchList({ onPick, autoFocus = true }: { onPick: (f: Food)
       {error && <div className="error">{error}</div>}
       {!q.trim() && recent.length > 0 && <div className="eyebrow">Recent</div>}
       {!q.trim() && recent.length === 0 && ready && (
-        <p className="muted small" style={{ margin: 0 }}>Search the USDA catalog of {index.items.length.toLocaleString()} foods, or create your own.</p>
+        <p className="muted small" style={{ margin: 0 }}>{index.items.length.toLocaleString()} foods</p>
       )}
       {list.length > 0 && (
         <div className="card flush">

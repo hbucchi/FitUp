@@ -79,10 +79,7 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title="Update plan" onClose={onClose} footer={result ? <button className="btn primary block" onClick={onClose}>Done</button> : undefined}>
       <div className="stack">
-        <p className="small muted" style={{ margin: 0 }}>
-          Reads your last 15 days of training and 10 days of food and weigh-ins. Then it decides which pre-designed week you run next, moves this week's missed sessions and adjusts nutrition only if needed.
-          {cfg ? ` The ${settings.provider === 'anthropic' ? 'Claude' : 'OpenAI'} coach decides, within safe limits.` : ' Rule-based (add an AI key in Profile › Assistant for a coach).'}
-        </p>
+        <div className="tiny muted">{cfg ? `${settings.provider === 'anthropic' ? 'Claude' : 'OpenAI'} coach` : 'Rule-based'} · last 15 days</div>
         {!result && (
           <div className="card" style={{ marginBottom: 0 }}>
             <div className="eyebrow" style={{ marginBottom: 6 }}>Reviewing…</div>
@@ -101,12 +98,12 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
           <div className="card" style={{ marginBottom: 0 }}>
             <div className="eyebrow">Week {decision.week} · from {prettyDate(decision.startDate)} · {decision.by === 'assistant' ? 'coach' : 'rules'}</div>
             <div className="h-section" style={{ marginTop: 2 }}>{decision.options.find((o) => o.id === chosen)?.title}</div>
-            <p className="small muted" style={{ marginTop: 4 }}>{chosen === decision.chosen.id ? decision.reason : 'Chosen by you.'}</p>
+            <p className="small muted" style={{ margin: '4px 0 10px' }}>{chosen === decision.chosen.id ? decision.reason : 'Your choice.'}</p>
             <div className="stack" style={{ gap: 6 }}>
               {decision.options.map((o) => (
                 <button key={o.id} className="chip" aria-pressed={o.id === chosen} style={{ textAlign: 'left', borderRadius: 12, padding: '8px 12px' }} onClick={() => override(o)}>
                   <strong>{o.title}</strong>
-                  <div className="tiny muted">{o.sessions} sessions · {o.hardSets} hard sets · ~{Math.round(o.minutes / 5) * 5} min total</div>
+                  <div className="tiny muted">{o.sessions} sessions · ~{Math.round(o.minutes / 5) * 5} min</div>
                 </button>
               ))}
             </div>
@@ -122,7 +119,7 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
                 </ul>
               </div>
             )}
-            <div className="notice small" style={{ whiteSpace: 'pre-wrap' }}>{result.summary}</div>
+            {result.summary && <div className="notice small" style={{ whiteSpace: 'pre-wrap' }}>{result.summary}</div>}
             {!undone && (result.changes.length > 0 || result.week) && <button className="btn ghost block" onClick={undo}>Undo this update</button>}
           </>
         )}

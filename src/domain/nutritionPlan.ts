@@ -148,10 +148,10 @@ export function reviewNutrition(args: {
   const unchanged = (msg: string[]): NutritionReview => ({ changed: false, plan, reasons: msg, metrics });
 
   if (metrics.avgProtein != null && metrics.avgProtein < plan.training.protein * 0.9) {
-    reasons.push(`Protein averaged ${Math.round(metrics.avgProtein)} g vs ${plan.training.protein} g — that's the first thing to fix.`);
+    reasons.push(`Protein low: ${Math.round(metrics.avgProtein)} of ${plan.training.protein} g.`);
   }
-  if (days.length < 5) return unchanged([...reasons, `Only ${days.length} of the last 10 days were fully logged — not enough to judge. Targets unchanged.`]);
-  if (ratePct == null) return unchanged([...reasons, 'Need at least 3 weigh-ins over a week or more to see the trend. Targets unchanged.']);
+  if (days.length < 5) return unchanged([...reasons, `Nutrition unchanged: only ${days.length}/10 days logged.`]);
+  if (ratePct == null) return unchanged([...reasons, 'Nutrition unchanged: need 3+ weigh-ins over a week.']);
 
   const deviation = ratePct - plan.targetRatePct;
   const tolerance = plan.phase === 'cut' ? 0.25 : 0.15;
@@ -160,15 +160,11 @@ export function reviewNutrition(args: {
   // safety first: losing too fast costs muscle
   const tooFast = plan.phase === 'cut' && ratePct < -1.2;
   if (!tooFast && Math.abs(deviation) <= tolerance) {
-    return unchanged([...reasons, `Weight trend ${fmtRate(ratePct)} vs target ${fmtRate(plan.targetRatePct)} — on track, no change needed.`]);
+    return unchanged([...reasons, `Nutrition on track (${fmtRate(ratePct)}).`]);
   }
   const adherence = metrics.adherencePct!;
   if (!tooFast && Math.abs(adherence - 100) > 10) {
-    return unchanged([
-      ...reasons,
-      `Weight trend ${fmtRate(ratePct)} vs target ${fmtRate(plan.targetRatePct)}, but intake averaged ${Math.round(adherence)} % of target. ` +
-        'The plan isn\'t the problem yet — hitting the current targets is. Targets unchanged.',
-    ]);
+    return unchanged([...reasons, `Nutrition unchanged: you ate ${Math.round(adherence)} % of target — hit the current targets first.`]);
   }
 
   // energy correction: the trend says real maintenance differs from the estimate
@@ -176,7 +172,7 @@ export function reviewNutrition(args: {
   delta = Math.max(-200, Math.min(200, delta * 0.5)); // damped: water weight makes trends noisy
   if (tooFast) delta = Math.max(delta, 150);
   delta = Math.round(delta / 10) * 10;
-  if (Math.abs(delta) < 50) return unchanged([...reasons, `Trend ${fmtRate(ratePct)} is close enough to target ${fmtRate(plan.targetRatePct)}. Targets unchanged.`]);
+  if (Math.abs(delta) < 50) return unchanged([...reasons, `Nutrition on track (${fmtRate(ratePct)}).`]);
 
   const floor = kcalFloor(p);
   const adjust = (d: MacroDay): MacroDay => {
@@ -187,8 +183,8 @@ export function reviewNutrition(args: {
   const next: NutritionPlan = { ...plan, training: adjust(plan.training), rest: adjust(plan.rest), updatedAt: args.now ?? new Date().toISOString() };
   reasons.push(
     tooFast
-      ? `Losing ${fmtRate(ratePct)} — faster than ~1 %/week risks muscle. Adding ${delta} kcal/day (from carbs).`
-      : `Weight trend ${fmtRate(ratePct)} vs target ${fmtRate(plan.targetRatePct)} with good adherence → ${delta > 0 ? '+' : ''}${delta} kcal/day, through carbohydrates.`,
+      ? `Losing too fast (${fmtRate(ratePct)}): +${delta} kcal/day.`
+      : `Trend ${fmtRate(ratePct)} vs target ${fmtRate(plan.targetRatePct)}: ${delta > 0 ? '+' : ''}${delta} kcal/day.`,
   );
   return { changed: true, plan: next, reasons, metrics };
 }

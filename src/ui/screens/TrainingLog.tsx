@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Exercise, ExerciseKind, StrengthSet, TrainingEntry } from '../../domain/types';
 import { INTENSITY, MINUTES_PER_SET, SEED_EXERCISES, type Intensity } from '../../domain/exercises';
-import { estimateActivity, paceLabel } from '../../domain/energy';
+import { estimateActivity } from '../../domain/energy';
 import { nowHHMM } from '../../domain/dates';
 import { normalize } from '../../data/search';
 import { uid, useStore } from '../../data/store';
@@ -115,7 +115,7 @@ export function TrainingLogSheet({ date, exercise: ex0, entry, onClose, onBack }
           <div className="row between" style={{ alignItems: 'flex-end' }}>
             <div>
               <div className="eyebrow">Calories burned</div>
-              <div className="tiny muted">{minutes > 0 ? `likely ${est.low}–${est.high} · ${est.method}` : 'enter a duration'}</div>
+              <div className="tiny muted">{minutes > 0 ? `${est.low}–${est.high}${paceBased ? ' · from pace' : ''}` : 'enter a duration'}</div>
             </div>
             <div className="big-num num" style={{ fontSize: 30 }}>≈ {kcal}<span className="small muted" style={{ fontFamily: 'var(--font-body)' }}> kcal</span></div>
           </div>
@@ -165,12 +165,6 @@ export function TrainingLogSheet({ date, exercise: ex0, entry, onClose, onBack }
         )}
         <label className="field" style={{ maxWidth: 160 }}>Time<input className="input" type="time" value={time} onChange={(e) => setTime(e.target.value)} /></label>
         <label className="field">Notes<textarea className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="How did it feel?" /></label>
-        <p className="tiny muted" style={{ margin: 0 }}>
-          {paceBased
-            ? `From your pace${est.speedKmh ? ` (${est.speedKmh.toFixed(1)} km/h${distance !== '' && exercise.kind === 'aerobic' ? `, ${paceLabel(minutes, Number(distance))}` : ''})` : ''} with the ACSM metabolic equations. `
-            : `MET ${est.met.toFixed(1)} × ${profile.weightKg} kg × ${(minutes / 60).toFixed(2)} h (Compendium of Physical Activities). ${exercise.distance ? 'Add the distance for a pace-based estimate. ' : ''}`}
-          About {est.netKcal} kcal of that is above what you'd burn resting. No estimate is exact; even wrist trackers miss by 25 % or more.
-        </p>
       </div>
     </Sheet>
   );

@@ -89,7 +89,7 @@ describe('nutrition plan', () => {
   test('stalled but eating 25 % over target → fix adherence, not the plan', () => {
     const r = run(plan.rest.kcal * 1.25, 0);
     expect(r.changed).toBe(false);
-    expect(r.reasons.join(' ')).toMatch(/hitting the current targets/);
+    expect(r.reasons.join(' ')).toMatch(/hit the current targets/);
   });
   test('losing too fast → calories go up even with imperfect adherence', () => {
     const r = run(plan.rest.kcal * 0.8, -1.4);

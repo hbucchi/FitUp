@@ -42,9 +42,7 @@ export function ObjectiveSheet({ onClose, onDone }: { onClose: () => void; onDon
   return (
     <Sheet title="Your objective" onClose={onClose} footer={<button className="btn primary block" disabled={!valid} onClick={save}>Set objective</button>}>
       <div className="stack">
-        <p className="small muted" style={{ margin: 0 }}>
-          The default is the classical physique: a normalised FFMI of {ideal.ffmi} at {ideal.bodyFatPct}% body fat. That's lean and muscular, at the upper end of what's reachable naturally. Adjust it if you want a different target.
-        </p>
+        <p className="small muted" style={{ margin: 0 }}>Default: the classical physique.</p>
         <div className="field">
           <span>Training experience</span>
           <Segmented<Experience> value={experience} onChange={setExperience} label="Experience"
@@ -54,9 +52,7 @@ export function ObjectiveSheet({ onClose, onDone }: { onClose: () => void; onDon
           <NumberField label="Target body fat" suffix="%" value={bf} onChange={setBf} />
           <NumberField label="Target FFMI (normalised)" value={ffmi} onChange={setFfmi} />
         </div>
-        <p className="tiny muted" style={{ margin: '-4px 0 0' }}>
-          FFMI is lean mass ÷ height². For men, about 20 looks athletic, 22–23 looks clearly muscular, and above 25 is rare without drugs. Women run about 3–4 points lower. You're at {fmt(m.ffmiNormalized, 1)} now.
-        </p>
+        <p className="tiny muted" style={{ margin: '-4px 0 0' }}>FFMI = muscularity. You're at {fmt(m.ffmiNormalized, 1)}.</p>
         {target && timeline && (
           <div className="card" style={{ marginBottom: 0 }}>
             <div className="grid2">
@@ -68,15 +64,11 @@ export function ObjectiveSheet({ onClose, onDone }: { onClose: () => void; onDon
             <div className="divider" />
             <div className="small"><strong>Start with:</strong> {GOAL_LABEL[phase]}</div>
             <div className="small" style={{ marginTop: 4 }}>
-              <strong>Rough timeline:</strong> ~{months} month{months > 1 ? 's' : ''}
-              {timeline.cutWeeks > 0 && timeline.buildWeeks > 0 && ` (≈${timeline.cutWeeks} weeks leaning out, then building)`}
+              <strong>Estimate:</strong> ~{months} month{months > 1 ? 's' : ''}
             </div>
-            <p className="tiny muted" style={{ marginBottom: 0 }}>
-              Muscle gain slows with training age: very roughly 0.7 / 0.35 / 0.15 kg of lean mass a month for newer, intermediate and advanced men (about half for women). These are coaching rules of thumb, not promises.
-            </p>
           </div>
         )}
-        {!valid && <div className="error">Body fat should be 6–35 % ({p.sex === 'female' ? '12' : '6'}+ for {p.sex === 'female' ? 'women' : 'men'}) and FFMI 16–26.</div>}
+        {!valid && <div className="error">Body fat {p.sex === 'female' ? '12' : '6'}–35 %, FFMI 16–26.</div>}
       </div>
     </Sheet>
   );

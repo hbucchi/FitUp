@@ -25,7 +25,7 @@ test('rules: missed Tuesday is done today; next week progresses; nutrition untou
   expect(r.week!.decision.week).toBe(2);
   expect(r.week!.decision.chosen.id).toBe('standard');
   expect(r.nutrition).toBeUndefined();
-  expect(r.summary).toMatch(/not enough|Only 0/i);
+  expect(r.summary).toMatch(/0\/10 days logged/);
 });
 
 describe('coach (AI) chooses among pre-designed weeks, with guardrails', () => {

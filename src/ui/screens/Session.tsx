@@ -15,9 +15,16 @@ const secLabel = (sec: number) => (sec >= 60 && sec % 60 === 0 ? `${sec / 60} mi
 export function prescription(e: PlannedExercise) {
   if (e.kind === 'cardio') return `${e.minutes} min`;
   if (e.kind === 'conditioning') return `${e.rounds} rounds × ${secLabel(e.workSec ?? 60)} on / ${secLabel(e.restSec)} off (~${e.minutes} min)`;
-  if (e.kind === 'power') return `${e.sets} × ${e.repsMin}–${e.repsMax} · explosive, maximum intent — stop when speed drops · rest ${restLabel(e.restSec)}`;
-  if (e.kind === 'prehab') return `${e.sets} × ${e.repsMin}–${e.repsMax} · controlled · rest ${restLabel(e.restSec)}`;
-  return `${e.sets} × ${e.repsMin}–${e.repsMax} · ${e.rir === 0 ? 'to failure on the last set' : `${e.rir} rep${e.rir > 1 ? 's' : ''} in reserve`} · rest ${restLabel(e.restSec)}`;
+  if (e.kind === 'power') return `${e.sets} × ${e.repsMin}–${e.repsMax} · explosive · rest ${restLabel(e.restSec)}`;
+  if (e.kind === 'prehab') return `${e.sets} × ${e.repsMin}–${e.repsMax} · rest ${restLabel(e.restSec)}`;
+  return `${e.sets} × ${e.repsMin}–${e.repsMax} · ${e.rir === 0 ? 'to failure' : `${e.rir} in reserve`} · rest ${restLabel(e.restSec)}`;
+}
+
+/** Compact form for lists: "3 × 6–8", "6 × 3 min", "30 min". */
+export function shortPrescription(e: PlannedExercise) {
+  if (e.kind === 'cardio') return `${e.minutes} min`;
+  if (e.kind === 'conditioning') return `${e.rounds} × ${secLabel(e.workSec ?? 60)}`;
+  return `${e.sets} × ${e.repsMin}–${e.repsMax}`;
 }
 
 const timed = (e: PlannedExercise) => e.kind === 'cardio' || e.kind === 'conditioning';
@@ -100,13 +107,12 @@ export function SessionSheet({ sessionId, onClose }: { sessionId: string; onClos
     >
       <div className="stack">
         <div className="small muted">
-          {prettyDate(session.date)} · week {session.week} · {session.phase === 'deload' ? 'lighter week — leave plenty in the tank' : `${session.focus.toLowerCase()} focus`} · ~{estimateMinutes(session)} min
-          {session.originalDate && <> · moved from {prettyDate(session.originalDate)}</>}
+          {prettyDate(session.date)} · ~{estimateMinutes(session)} min{session.originalDate && <> · moved from {prettyDate(session.originalDate)}</>}
         </div>
         {session.note && <div className="notice tiny">{session.note}</div>}
         {done ? (
           <>
-            <div className="notice">Completed{session.completedAt ? ` ${new Date(session.completedAt).toLocaleDateString()}` : ''}.</div>
+            <div className="notice">Completed</div>
             <div className="card flush">
               <ul className="list">
                 {logged.map((t) => (
@@ -122,9 +128,6 @@ export function SessionSheet({ sessionId, onClose }: { sessionId: string; onClos
           </>
         ) : (
           <>
-            <p className="tiny muted" style={{ margin: 0 }}>
-              Pick a weight you can lift for the rep range while stopping with the prescribed reps in reserve. When you reach the top of the range on every set, add weight next time.
-            </p>
             {session.exercises.map((e) => {
               const prev = last.get(e.exerciseId);
               return (
@@ -133,7 +136,7 @@ export function SessionSheet({ sessionId, onClose }: { sessionId: string; onClos
                   <div className="tiny muted" style={{ marginBottom: 8 }}>{prescription(e)}</div>
                   {prev?.sets?.length ? (
                     <div className="tiny" style={{ color: 'var(--sea)', marginBottom: 8 }}>
-                      Last time ({prev.date}): {prev.sets.map((s) => `${s.reps}${s.weightKg ? `×${fmt(s.weightKg)}` : ''}`).join(', ')}
+                      Last: {prev.sets.map((s) => `${s.reps}${s.weightKg ? `×${fmt(s.weightKg)}` : ''}`).join(', ')}
                     </div>
                   ) : null}
                   {e.note && <div className="tiny" style={{ marginBottom: 8 }}>{e.note}</div>}
@@ -151,7 +154,7 @@ export function SessionSheet({ sessionId, onClose }: { sessionId: string; onClos
                           <input className="input num" type="number" inputMode="numeric" min={0} placeholder={`${e.repsMin}–${e.repsMax}`} value={s.reps || ''}
                             aria-label={`${e.name} set ${i + 1} reps`} onChange={(ev) => setAt(e.exerciseId, i, { reps: Number(ev.target.value) })} />
                           <span className="small muted">reps</span>
-                          <input className="input num" type="number" inputMode="decimal" min={0} step="any" value={s.weightKg || ''} placeholder="kg"
+                          <input className="input num" type="number" inputMode="decimal" min={0} step="any" value={s.weightKg || ''}
                             aria-label={`${e.name} set ${i + 1} weight`} onChange={(ev) => setAt(e.exerciseId, i, { weightKg: Number(ev.target.value) })} />
                           <span className="small muted">kg</span>
                         </div>

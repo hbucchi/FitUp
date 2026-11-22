@@ -75,14 +75,9 @@ export function Diary() {
             <div className="row between small"><span className="muted">Fiber</span><span className="num">{fmt(totals.fiber)} / {targets.fiber} g</span></div>
           </div>
         </div>
-        {extra > 0 && (
-          <div className="tiny muted" style={{ marginTop: 10 }}>
-            Extra activity adds what it burns above resting ({extra} kcal) to today's budget. Planned sessions are already in your targets.
-          </div>
-        )}
         {targets.dayType && (
           <div className="tiny muted" style={{ marginTop: 10 }}>
-            {targets.dayType === 'training' ? 'Training day — a little more carbohydrate to fuel the session.' : 'Rest day targets.'}
+            {targets.dayType === 'training' ? 'Training day' : 'Rest day'}
           </div>
         )}
         <div className="macro-bars" style={{ marginTop: 16 }}>
@@ -193,9 +188,9 @@ export function Diary() {
           <button className="btn ghost" onClick={() => setShowMicros((s) => !s)}>{showMicros ? 'Hide' : 'Show'}</button>
         </div>
         {showMicros ? (
-          food.length ? <><NutrientTable n={totals} /><p className="tiny muted">% of FDA Daily Value. Missing values in the source data count as zero.</p></> : <p className="muted small">Log some food to see vitamins and minerals.</p>
+          food.length ? <><NutrientTable n={totals} /><p className="tiny muted">% of Daily Value</p></> : <p className="muted small">Nothing logged yet.</p>
         ) : (
-          <p className="muted small" style={{ margin: 0 }}>Vitamins, minerals and fat breakdown for the day.</p>
+          <p className="muted small" style={{ margin: 0 }}>Vitamins and minerals</p>
         )}
       </section>
 

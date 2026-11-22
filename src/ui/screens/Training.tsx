@@ -6,7 +6,7 @@ import { Sheet } from '../components/Sheet';
 import { IconArrows, IconBolt, IconLock, IconPlus, IconWave } from '../components/Icons';
 import { CustomExerciseForm, ExerciseList, TrainingLogSheet } from './TrainingLog';
 import { describeTraining } from './Diary';
-import { SessionSheet, prescription } from './Session';
+import { SessionSheet, shortPrescription } from './Session';
 import { estimateMinutes } from '../../domain/programs';
 
 /** Baseline assessments that will seed automatic programming. */
@@ -41,8 +41,8 @@ export function Training() {
             <div key={x.id}>
               <div className="eyebrow">{x.status === 'done' ? 'Done today' : "Today's session"} · week {x.week}</div>
               <div className="h-section" style={{ fontSize: 22 }}>{x.title}</div>
-              <ul className="small" style={{ margin: '8px 0 12px', paddingLeft: 18, color: 'var(--ink-2)' }}>
-                {x.exercises.map((e) => <li key={e.exerciseId}><strong>{e.name}</strong> — {prescription(e)}</li>)}
+              <ul className="small" style={{ margin: '8px 0 12px', paddingLeft: 0, listStyle: 'none', color: 'var(--ink-2)', lineHeight: 1.7 }}>
+                {x.exercises.map((e) => <li key={e.exerciseId}>{e.name} <span className="muted">{shortPrescription(e)}</span></li>)}
               </ul>
               <button className={`btn block ${x.status === 'done' ? '' : 'primary'}`} onClick={() => setOpenSession(x.id)}>
                 {x.status === 'done' ? 'View session' : `Start session · ~${estimateMinutes(x)} min`}
@@ -63,16 +63,12 @@ export function Training() {
           <h2 className="h-section">The Trials</h2>
           <span className="badge">Coming soon</span>
         </div>
-        <p className="small muted" style={{ marginTop: 0 }}>
-          Three baseline assessments will measure where you start. Your programme will be built from the results.
-        </p>
         <div className="stack" style={{ gap: 8 }}>
           {TRIALS.map((t) => (
             <div className="trial" key={t.name}>
               <div className="glyph"><t.icon /></div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600 }}>{t.name}</div>
-                <div className="small muted">{t.desc}</div>
               </div>
               <IconLock width={16} height={16} style={{ color: 'var(--muted)' }} />
             </div>

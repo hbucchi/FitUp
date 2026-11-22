@@ -154,7 +154,7 @@ export function VoiceLogSheet({ date, onClose }: { date: string; onClose: () => 
             {MEALS.map((m) => <button key={m} className="chip" aria-pressed={m === meal} onClick={() => setMeal(m)}>{MEAL_LABEL[m]}</button>)}
           </div>
           <label className="field" style={{ maxWidth: 160 }}>Time<input className="input" type="time" value={time} onChange={(e) => setTime(e.target.value)} /></label>
-          {rows.length === 0 && <p className="muted">We couldn't pick out any foods. Go back and try rephrasing — e.g. “two eggs and a slice of toast”.</p>}
+          {rows.length === 0 && <p className="muted">No foods found — try “2 eggs and a slice of toast”.</p>}
           {rows.map((r) => {
             const grams = r.food ? gramsFor(r.food, r.quantity, r.unit) : 0;
             const n = r.food ? scaleNutrients(r.food.nutrients, grams) : {};
@@ -221,7 +221,7 @@ export function VoiceLogSheet({ date, onClose }: { date: string; onClose: () => 
               {recorder.recording ? <IconStop /> : <IconMic />}
             </button>
             <div className="small muted">
-              {recorder.recording ? `Recording… ${recorder.seconds}s — tap to stop` : transcribing ? 'Transcribing…' : 'Tap to record a voice note'}
+              {recorder.recording ? `Recording… ${recorder.seconds}s` : transcribing ? 'Transcribing…' : 'Tap to record'}
             </div>
             <label className="btn ghost small" style={{ alignSelf: 'center' }}>
               Or upload an audio file
@@ -234,19 +234,19 @@ export function VoiceLogSheet({ date, onClose }: { date: string; onClose: () => 
               aria-label={speech.listening ? 'Stop recording' : 'Start recording'}>
               {speech.listening ? <IconStop /> : <IconMic />}
             </button>
-            <div className="small muted">{speech.listening ? 'Listening… tap to stop' : 'Tap and say what you ate'}</div>
+            <div className="small muted">{speech.listening ? 'Listening…' : 'Tap and speak'}</div>
           </>
         ) : (
-          <div className="notice">Voice input isn't available in this browser. Type the description, or set up OpenAI or ElevenLabs transcription in Profile › Assistant.</div>
+          <div className="notice">No voice input in this browser — type instead.</div>
         )}
         {(speech.error || recorder.error || sttError) && <div className="error">{speech.error ?? recorder.error ?? sttError}</div>}
         {speech.listening && speech.interim && <div className="transcript"><span className="interim">{speech.interim}</span></div>}
         <label className="field" style={{ textAlign: 'left' }}>
-          {assistantOn ? 'What did you eat or train?' : 'Transcript'} <span className="muted">(you can type or edit)</span>
+          {assistantOn ? 'What did you eat or train?' : 'Transcript'}
           <textarea className="input" value={text} onChange={(e) => speech.setTranscript(e.target.value)}
             placeholder={assistantOn
-              ? 'Lunch: chicken burrito bowl with rice and guacamole, a Coke Zero. Then ran 5 km in 28 minutes.'
-              : 'For lunch I had 200 g of chicken breast, a cup of white rice and a tablespoon of olive oil'} />
+              ? 'Burrito bowl and a Coke Zero for lunch, then a 5 km run'
+              : '200 g chicken breast and a cup of rice'} />
         </label>
         {assistantOn ? (
           <>
@@ -261,7 +261,7 @@ export function VoiceLogSheet({ date, onClose }: { date: string; onClose: () => 
               {ready ? 'Find foods' : 'Loading catalog…'}
             </button>
             <p className="tiny muted" style={{ margin: 0 }}>
-              Say quantities and units — “two eggs”, “150 grams of salmon”, “a cup of milk”. Add a Claude or OpenAI key in Profile › Assistant to have it logged for you.
+              Include amounts: “2 eggs”, “150 g salmon”.
             </p>
           </>
         )}

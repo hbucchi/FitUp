@@ -92,10 +92,6 @@ export function ProfileScreen() {
           <div className="stat"><div className="k">Carbohydrate</div><div className="v" style={{ color: 'var(--carbs)' }}>{t.carbs} g</div></div>
           <div className="stat"><div className="k">Fat</div><div className="v" style={{ color: 'var(--fat)' }}>{t.fat} g</div></div>
         </div>
-        <p className="tiny muted">
-          BMR {Math.round(m.bmr)} kcal (Katch–McArdle, from lean mass) × activity = maintenance {Math.round(m.tdee)} kcal.
-          Protein is set at 2.2 g per kg of lean mass.
-        </p>
       </section>}
 
       <section className="card">
@@ -103,11 +99,6 @@ export function ProfileScreen() {
           <h2 className="h-section">Assistant</h2>
           <span className={`badge ${assistantOn ? 'sea' : ''}`}>{assistantOn ? (assistant.provider === 'anthropic' ? 'Claude' : 'OpenAI') : 'Off'}</span>
         </div>
-        <p className="small muted" style={{ marginTop: 0 }}>
-          {assistantOn
-            ? 'Write or speak what you ate or trained, and it is logged to your diary automatically.'
-            : 'Add a Claude or OpenAI API key and the assistant will log your meals and training from text or voice notes.'}
-        </p>
         <button className="btn block" onClick={() => setAssistantOpen(true)}>{assistantOn ? 'Assistant settings' : 'Set up assistant'}</button>
       </section>
 
@@ -127,7 +118,7 @@ export function ProfileScreen() {
           </div>
         ) : (
           <>
-            <p className="small muted" style={{ marginTop: 0 }}>Sign in to back up your diary and use it on all your devices. What you logged here comes with you.</p>
+            <p className="small muted" style={{ marginTop: 0 }}>Back up and sync across devices.</p>
             <button className="btn primary block" onClick={() => signInWithGoogle().then(() => setLocalMode(false)).catch((e) => alert(e.message))}>Continue with Google</button>
           </>
         )}

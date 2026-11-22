@@ -6,9 +6,6 @@ export function AssistantSettingsForm({ onDone }: { onDone: () => void }) {
   const s = useAssistant();
   return (
     <div className="stack">
-      <p className="small muted" style={{ margin: 0 }}>
-        With a key, the assistant reads what you write or say, finds each food in your catalog, and logs it to your diary for you.
-      </p>
       <div className="field">
         <span>Assistant model</span>
         <Segmented<AgentProvider> value={s.provider} label="Provider"
@@ -33,7 +30,6 @@ export function AssistantSettingsForm({ onDone }: { onDone: () => void }) {
           </label>
           <label className="field">Model
             <input className="input" value={s.openaiModel} onChange={(e) => s.set({ openaiModel: e.target.value })} />
-            <span className="tiny muted">Any chat model your key can use that supports function calling.</span>
           </label>
         </>
       )}
@@ -45,7 +41,7 @@ export function AssistantSettingsForm({ onDone }: { onDone: () => void }) {
           options={[{ value: 'browser', label: 'Browser' }, { value: 'openai', label: 'OpenAI' }, { value: 'elevenlabs', label: 'ElevenLabs' }]} />
       </div>
       {s.transcriber === 'browser' && (
-        <p className="tiny muted" style={{ margin: 0 }}>Free, live dictation in Chrome, Edge and Safari. Can't transcribe recorded or uploaded audio files.</p>
+        <p className="tiny muted" style={{ margin: 0 }}>Free live dictation. No audio files.</p>
       )}
       {s.transcriber === 'openai' && (
         <>
@@ -69,14 +65,11 @@ export function AssistantSettingsForm({ onDone }: { onDone: () => void }) {
       {s.transcriber !== 'browser' && (
         <label className="row small" style={{ gap: 8 }}>
           <input type="checkbox" checked={s.autoLog} onChange={(e) => s.set({ autoLog: e.target.checked })} />
-          Log voice notes automatically after recording
+          Log voice notes automatically
         </label>
       )}
 
-      <div className="notice tiny">
-        Keys are stored only in this browser and sent only to the provider you chose. They are not included in data exports.
-        This is fine for personal use. Before public launch, these calls move to a server (Firebase Functions) so keys never reach the app.
-      </div>
+      <p className="tiny muted" style={{ margin: 0 }}>Keys stay in this browser and are never exported.</p>
       <button className="btn primary block" onClick={onDone}>Done</button>
     </div>
   );

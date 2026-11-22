@@ -8,8 +8,8 @@ type Draft = Omit<Profile, 'createdAt' | 'heightCm' | 'weightKg' | 'bodyFatPct' 
 };
 
 const BF_GUIDE: Record<Sex, string> = {
-  male: 'Rough guide: visible abs ≈ 10–12%, athletic ≈ 13–17%, average ≈ 18–25%.',
-  female: 'Rough guide: visible abs ≈ 16–19%, athletic ≈ 20–24%, average ≈ 25–32%.',
+  male: 'Visible abs ≈ 10–12% · athletic 13–17% · average 18–25%',
+  female: 'Visible abs ≈ 16–19% · athletic 20–24% · average 25–32%',
 };
 
 export function ProfileForm({ initial, submitLabel, onSubmit }: {
@@ -58,7 +58,7 @@ export function ProfileForm({ initial, submitLabel, onSubmit }: {
         <input className="input" value={d.name} onChange={(e) => set('name', e.target.value)} placeholder="How should we call you?" autoComplete="given-name" />
       </label>
       <div className="field">
-        <span>Sex <span className="muted">(used for energy and body-composition estimates)</span></span>
+        <span>Sex</span>
         <Segmented<Sex> value={d.sex} onChange={(v) => set('sex', v)} label="Sex"
           options={[{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }]} />
       </div>
@@ -68,7 +68,7 @@ export function ProfileForm({ initial, submitLabel, onSubmit }: {
         <NumberField label="Weight" value={d.weightKg} onChange={(v) => set('weightKg', v)} suffix="kg" placeholder="78" />
         <NumberField label="Body fat (estimate)" value={d.bodyFatPct} onChange={(v) => set('bodyFatPct', v)} suffix="%" placeholder="18" />
       </div>
-      <p className="tiny muted" style={{ margin: '-4px 0 0' }}>{BF_GUIDE[d.sex]} You'll refine it later with the initial assessments.</p>
+      <p className="tiny muted" style={{ margin: '-4px 0 0' }}>{BF_GUIDE[d.sex]}</p>
       <label className="field">
         Activity
         <select className="input" value={d.activity} onChange={(e) => set('activity', e.target.value as ActivityLevel)}>

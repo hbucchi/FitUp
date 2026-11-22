@@ -28,9 +28,6 @@ export function SignIn({ onLocal }: { onLocal: () => void }) {
           <GoogleMark /> {busy ? 'Signing in…' : 'Continue with Google'}
         </button>
         {error && <div className="error">{error}</div>}
-        <p className="tiny muted" style={{ margin: 0, textAlign: 'center' }}>
-          Your diary is stored in your account and synced across your devices.
-        </p>
       </div>
       <button className="btn ghost block small" onClick={onLocal}>Continue without an account (this device only)</button>
     </div>

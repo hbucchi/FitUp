@@ -93,17 +93,17 @@ export function chooseByRules(options: WeekOption[], s: TrainingSignals): { opti
   const standard = get('standard')!;
   const pct = s.adherence != null ? Math.round(s.adherence * 100) : undefined;
   if (s.adherence != null && s.adherence < 0.5 && get('condensed'))
-    return { option: get('condensed')!, reason: `You completed ${s.done} of ${s.due} sessions in the last two weeks. A shorter week you finish beats a full one you don't.` };
+    return { option: get('condensed')!, reason: `${s.done} of ${s.due} sessions done — a shorter week you can finish.` };
   if (s.adherence != null && s.adherence < 0.75 && get('repeat'))
-    return { option: get('repeat')!, reason: `Adherence was ${pct}% — repeating last week's loading before progressing.` };
+    return { option: get('repeat')!, reason: `${pct}% of sessions done — repeat before progressing.` };
   if (s.declined >= 2 && s.declined > s.improved && get('lighter'))
-    return { option: get('lighter')!, reason: `${s.declined} lifts went down since last time (vs ${s.improved} up) — a sign of accumulated fatigue. Lighter week now.` };
+    return { option: get('lighter')!, reason: `${s.declined} lifts went down — time to recover.` };
   if (s.weeksSinceLighter >= 6 && get('lighter'))
-    return { option: get('lighter')!, reason: `${s.weeksSinceLighter} weeks without a lighter week — taking one to manage fatigue.` };
+    return { option: get('lighter')!, reason: `${s.weeksSinceLighter} weeks without a break — time to recover.` };
   if (get('skip-deload') && s.adherence != null && s.adherence >= 0.9 && s.improved >= 2 && s.declined === 0)
-    return { option: get('skip-deload')!, reason: `Adherence ${pct}% and ${s.improved} lifts climbing — recovery looks good, so the scheduled lighter week is skipped.` };
+    return { option: get('skip-deload')!, reason: `Strong weeks — no break needed.` };
   return {
     option: standard,
-    reason: s.adherence == null ? 'Not much history yet — following the plan.' : `Adherence ${pct}%${s.improved ? `, ${s.improved} lifts up` : ''} — progressing as planned.`,
+    reason: s.adherence == null ? 'Following the plan.' : `${pct}% of sessions done — keep progressing.`,
   };
 }

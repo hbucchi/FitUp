@@ -90,12 +90,8 @@ export function rulesReview(input: ReviewInput): ReviewResult {
   const changedSessions = applyChanges(input.sessions, base.schedule).filter((s, i) => s !== input.sessions[i]);
   const changes = base.schedule.map(describeChange);
   const lines: string[] = [];
-  lines.push(base.schedule.length ? `This week: ${base.schedule.length} session${base.schedule.length > 1 ? 's' : ''} adjusted.` : 'This week: nothing missed — schedule unchanged.');
   const week = base.ruleChoice ? applyWeek(base.program, input, base.targetWeek, base.ruleChoice.option, base.ruleChoice.reason, 'rules', base.options) : undefined;
-  if (week) {
-    lines.push(`Week ${week.decision.week}: ${week.decision.chosen.title}. ${week.decision.reason}`);
-    if (week.decision.chosen.id !== 'standard') changes.push(`Week ${week.decision.week}: ${week.decision.chosen.title}`);
-  }
+  if (week && week.decision.chosen.id !== 'standard') changes.push(`Week ${week.decision.week}: ${week.decision.chosen.title}`);
   if (base.nutrition) {
     if (base.nutrition.changed && input.nutrition) {
       const n = base.nutrition.plan;

@@ -44,7 +44,6 @@ export function ProgramPickerSheet({ onClose }: { onClose: () => void }) {
             {rec(p) && <span className="badge sea">Recommended</span>}
           </div>
           <div className="tiny muted">{p.tagline} · {p.minWeeks === p.maxWeeks ? `${p.minWeeks} weeks` : `${p.minWeeks}–${p.maxWeeks} weeks`}</div>
-          <div className="small" style={{ marginTop: 6, color: 'var(--ink-2)' }}>{p.description}</div>
         </div>
         <IconChevron width={16} height={16} />
       </button>
@@ -57,7 +56,6 @@ export function ProgramPickerSheet({ onClose }: { onClose: () => void }) {
           <div className="eyebrow">Physique</div>
           {physique.map(card)}
           <div className="eyebrow" style={{ marginTop: 8 }}>Sport & function</div>
-          <p className="tiny muted" style={{ margin: '-6px 0 0' }}>Strength, power, conditioning and injury prevention to do alongside your sport.</p>
           {sport.map(card)}
         </div>
       </Sheet>
@@ -82,11 +80,7 @@ export function ProgramPickerSheet({ onClose }: { onClose: () => void }) {
       footer={<button className="btn primary block" disabled={!preview} onClick={startPlan}>Start program</button>}>
       <div className="stack">
         <p className="small muted" style={{ margin: 0 }}>{program.description}</p>
-        {program.notes && (
-          <ul className="small" style={{ margin: 0, paddingLeft: 18, color: 'var(--ink-2)' }}>
-            {program.notes.map((n) => <li key={n}>{n}</li>)}
-          </ul>
-        )}
+        {program.notes?.[0] && <div className="notice small">{program.notes[0]}</div>}
         {program.minWeeks !== program.maxWeeks && (
           <label className="field">
             Length
@@ -121,9 +115,6 @@ export function ProgramPickerSheet({ onClose }: { onClose: () => void }) {
               </span>
             ))}
           </div>
-          <p className="tiny muted" style={{ marginBottom: 0 }}>
-            Rep ranges rotate weekly. Sets build and effort rises through each block (3 → 1 reps in reserve). Accessories change every 2 weeks and main lifts each block{weeks > 4 ? ', with a lighter week to shed fatigue' : ''}.
-          </p>
         </div>
         {preview && (
           <div className="card flush" style={{ marginBottom: 0 }}>
@@ -133,7 +124,7 @@ export function ProgramPickerSheet({ onClose }: { onClose: () => void }) {
                 <li key={x.id} className="list-item" style={{ alignItems: 'flex-start' }}>
                   <div className="main">
                     <div className="title">{prettyDate(x.date)} · {x.title}</div>
-                    <div className="sub">{x.exercises.map((e) => e.name).join(' · ')}</div>
+                    <div className="sub">{x.exercises.length} exercises</div>
                   </div>
                   <span className="tiny muted">~{estimateMinutes(x)} min</span>
                 </li>
@@ -141,7 +132,7 @@ export function ProgramPickerSheet({ onClose }: { onClose: () => void }) {
             </ul>
           </div>
         )}
-        {s.activePlan && <p className="tiny muted" style={{ margin: 0 }}>This replaces “{s.activePlan.name}”. Your completed sessions stay in your history.</p>}
+        {s.activePlan && <p className="tiny muted" style={{ margin: 0 }}>Replaces “{s.activePlan.name}”.</p>}
       </div>
     </Sheet>
   );

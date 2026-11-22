@@ -15,7 +15,6 @@ export function Onboarding() {
       </div>
       <div className="meander" />
       <div className="card">
-        <div className="eyebrow" style={{ marginBottom: 4 }}>Step 1 of 1</div>
         <h1 className="h-section" style={{ marginBottom: 14 }}>Your measure</h1>
         <ProfileForm
           submitLabel="Begin"
@@ -25,7 +24,6 @@ export function Onboarding() {
           }}
         />
       </div>
-      <p className="tiny muted" style={{ textAlign: 'center' }}>Your data stays on this device until accounts arrive.</p>
     </div>
   );
 }

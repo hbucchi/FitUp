@@ -46,8 +46,7 @@ export function Foods() {
       <FoodSearchList onPick={setView} autoFocus={false} />
 
       <p className="tiny muted" style={{ marginTop: 18 }}>
-        Catalog: USDA FoodData Central — Foundation Foods and SR Legacy
-        {meta ? ` (${meta.count.toLocaleString()} foods, built ${meta.generatedAt})` : ''}. Public domain.
+        USDA FoodData Central{meta ? ` · ${meta.count.toLocaleString()} foods` : ''}
       </p>
 
       {view && !adding && !editing && <FoodDetailSheet food={view} onClose={() => setView(null)} onAdd={() => setAdding(view)} onEdit={() => setEditing(view)} />}
