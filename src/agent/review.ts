@@ -1,4 +1,4 @@
-import type { ActivePlan, BodyLog, Exercise, FoodEntry, MacroDay, NutritionPlan, Objective, PlannedSession, Profile, TrainingEntry, WeekChoice } from '../domain/types';
+import type { ActivePlan, BodyLog, CheckIn, Exercise, FoodEntry, MacroDay, NutritionPlan, Objective, PlannedSession, Profile, TrainingEntry, WeekChoice } from '../domain/types';
 import { addDays, planWeekStart, programById, rebuildFrom, weekday, weekOptions, type Program, type WeekOption } from '../domain/programs';
 import { applyChanges, endOfWeek, planWeek, startOfWeek, type ScheduleChange } from '../domain/reschedule';
 import { kcalFloor, reviewNutrition } from '../domain/nutritionPlan';
@@ -28,7 +28,8 @@ export interface ReviewInput {
   food: FoodEntry[];
   bodyLog: BodyLog[];
   nutrition?: NutritionPlan;
-  exercises: Exercise[];
+  exercises?: Exercise[];
+  checkIns?: CheckIn[];
 }
 
 export interface WeekDecision {
@@ -68,7 +69,7 @@ export function baseline(input: ReviewInput) {
   const schedule = planWeek(current, input.today, input.plan.trainingDays, { trainedToday, lastDay });
 
   const options = program && tw ? weekOptions(program, input.plan, tw) : [];
-  const signals = tw ? trainingSignals(input.plan, input.sessions, input.training, input.today, tw) : undefined;
+  const signals = tw ? trainingSignals(input.plan, input.sessions, input.training, input.today, tw, input.checkIns ?? []) : undefined;
   const ruleChoice = options.length && signals ? chooseByRules(options, signals) : undefined;
 
   const isTrainingDay = (d: string) => input.sessions.some((s) => s.date === d && s.status !== 'skipped');
@@ -148,6 +149,9 @@ export function coachContext(input: ReviewInput, base: ReturnType<typeof baselin
       liftTrends: base.signals.trends.map((t) => `${t.name} ${t.changePct > 0 ? '+' : ''}${t.changePct.toFixed(1)}%`),
       weeksSinceLighterWeek: base.signals.weeksSinceLighter,
     },
+    checkInsLast14Days: (input.checkIns ?? [])
+      .filter((c) => c.date >= addDays(today, -14) && c.date <= today)
+      .map((c) => ({ date: fmtDay(c.date), sleepHours: c.sleepHours, sleepQuality: c.sleepQuality, mood: c.mood, energy: c.energy, stress: c.stress, soreness: c.soreness, note: c.note })),
     thisWeekOpenSessions: sorted
       .filter((s) => s.status === 'planned' && s.date >= weekStart && s.date <= weekEnd && (!tw || s.week < tw))
       .map((s) => ({ session_id: s.id, date: s.date, day: DAY[weekday(s.date)], overdue: s.date < today, title: s.title })),
@@ -215,7 +219,7 @@ export const COACH_SYSTEM = `You are the coach inside Micenae, a training and nu
 1. Which pre-designed week runs next (choose_week, exactly once if nextWeek is present):
    - standard: progress as planned — the default when training is going well.
    - repeat: same loading again — when several sessions were missed, or lifts stalled without signs of fatigue.
-   - lighter: pull a lighter week forward — when lifts are declining across sessions, sessions feel unusually hard, or many weeks passed without one.
+   - lighter: pull a lighter week forward — when lifts are declining, recovery is poor (short sleep, low energy, high soreness or stress in checkInsLast14Days), or many weeks passed without one.
    - condensed: fewer, longer sessions — when the athlete clearly can't fit the full number of days (repeated misses), so the week is still completed.
    - skip-deload: skip a scheduled lighter week — only when adherence is high and lifts are climbing (lighter weeks don't add muscle by themselves).
    "ruleBasedSuggestion.nextWeek" is a careful rule-based pick; agree unless the data gives you a clear reason not to.

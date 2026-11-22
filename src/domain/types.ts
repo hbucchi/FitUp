@@ -16,6 +16,18 @@ export interface Profile {
   createdAt: string;
 }
 
+/** Daily check-in. Scales are 1 (low) … 5 (high). */
+export interface CheckIn {
+  date: string; // YYYY-MM-DD
+  sleepHours?: number;
+  sleepQuality?: number;
+  mood?: number;
+  energy?: number;
+  stress?: number;
+  soreness?: number;
+  note?: string;
+}
+
 /** Weigh-ins over time, so we can chart the path later. */
 export interface BodyLog {
   date: string; // YYYY-MM-DD

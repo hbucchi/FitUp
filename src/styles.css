@@ -367,3 +367,6 @@ textarea.input { resize: vertical; min-height: 84px; }
   .macro-bars { gap: 8px; }
   .grid3 { grid-template-columns: 1fr 1fr; }
 }
+
+/* cards that are also tappable rows keep the card surface */
+.card.list-item { background: var(--surface); }

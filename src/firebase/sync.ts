@@ -26,13 +26,13 @@ import { useStore, type AppState } from '../data/store';
  * Firestore's persistent cache makes both directions work offline.
  */
 
-export const COLLECTIONS = ['foodEntries', 'trainingEntries', 'customFoods', 'customExercises', 'bodyLog', 'plannedSessions'] as const;
+export const COLLECTIONS = ['foodEntries', 'trainingEntries', 'customFoods', 'customExercises', 'bodyLog', 'plannedSessions', 'checkIns'] as const;
 /** Small per-user documents stored as fields of users/{uid}. */
 export const USER_FIELDS = ['profile', 'recentFoodIds', 'objective', 'activePlan', 'nutritionPlan', 'reviews'] as const;
 type CollectionKey = (typeof COLLECTIONS)[number];
 type Item = { id?: string; date?: string };
 
-const idOf = (key: CollectionKey, item: Item) => (key === 'bodyLog' ? item.date! : item.id!);
+const idOf = (key: CollectionKey, item: Item) => (key === 'bodyLog' || key === 'checkIns' ? item.date! : item.id!);
 
 export type SyncStatus = { state: 'connecting' | 'ready' | 'error'; message?: string };
 

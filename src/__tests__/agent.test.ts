@@ -43,6 +43,14 @@ describe('tools', () => {
   });
 });
 
+test('log_checkin merges into the day and validates scales', () => {
+  const c = ctx();
+  executeTool('log_checkin', { sleep_hours: 6.3, energy: 2 }, c);
+  executeTool('log_checkin', { soreness: 4, note: 'legs from squats' }, c);
+  expect(useStore.getState().checkIns).toEqual([{ date: '2026-11-22', sleepHours: 6.5, energy: 2, soreness: 4, note: 'legs from squats' }]);
+  expect(() => executeTool('log_checkin', { mood: 9 }, c)).toThrow(/1 to 5/);
+});
+
 describe('agent loop', () => {
   test('Claude: search → bad unit → fix → summary', async () => {
     const replies = [

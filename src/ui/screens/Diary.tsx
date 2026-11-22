@@ -6,6 +6,7 @@ import { mealForNow, prettyDate, shiftDate, todayISO } from '../../domain/dates'
 import { useStore } from '../../data/store';
 import { sessionsOn, targetsFor } from '../../data/planSelectors';
 import { SessionSheet } from './Session';
+import { CheckInSheet, checkInSummary } from './CheckIn';
 import { IconChevron, IconMic, IconPlus } from '../components/Icons';
 import { MacroBar, MacroLine, Ring } from '../components/Macros';
 import { NutrientTable } from '../components/NutrientTable';
@@ -30,6 +31,7 @@ type Modal =
   | { kind: 'edit-training'; entry: TrainingEntry }
   | { kind: 'session'; id: string }
   | { kind: 'quick'; exerciseId: string }
+  | { kind: 'checkin' }
   | null;
 
 export function Diary() {
@@ -49,6 +51,7 @@ export function Diary() {
   const extra = training.filter((t) => !t.planSessionId).reduce((s, t) => s + (t.netKcal ?? Math.round(t.kcal * 0.85)), 0);
   const nutritionPlan = useStore((s) => s.nutritionPlan);
   const plannedSessions = useStore((s) => s.plannedSessions);
+  const checkIn = useStore((s) => s.checkIns.find((c) => c.date === date));
   const targets = useMemo(() => targetsFor({ profile, nutritionPlan, plannedSessions }, date), [profile, nutritionPlan, plannedSessions, date]);
   const planned = useMemo(() => sessionsOn({ plannedSessions }, date), [plannedSessions, date]);
   const byTime = (a: { time?: string }, b: { time?: string }) => (a.time ?? '').localeCompare(b.time ?? '');
@@ -63,6 +66,15 @@ export function Diary() {
         </div>
         <button className="icon-btn" aria-label="Next day" onClick={() => setDate((d) => shiftDate(d, 1))}><IconChevron /></button>
       </div>
+
+      <button className="card list-item" style={{ borderRadius: 'var(--radius)', border: '1px solid var(--line)', marginBottom: 14 }}
+        onClick={() => setModal({ kind: 'checkin' })} aria-label="Check-in">
+        <div className="main">
+          <div className="eyebrow">Check-in</div>
+          <div className="small">{checkIn ? checkInSummary(checkIn) || 'Logged' : <span className="muted">Sleep, mood, energy</span>}</div>
+        </div>
+        {checkIn ? <span className="badge sea">Done</span> : <IconPlus width={18} height={18} style={{ color: 'var(--accent)' }} />}
+      </button>
 
       <section className="card" aria-label="Daily summary">
         <div className="row" style={{ gap: 18 }}>
@@ -199,6 +211,7 @@ export function Diary() {
       {modal?.kind === 'voice' && <VoiceLogSheet date={date} onClose={() => setModal(null)} />}
       {modal?.kind === 'exercise' && <ExercisePickerSheet date={date} onClose={() => setModal(null)} />}
       {modal?.kind === 'edit-training' && <TrainingLogSheet date={date} entry={modal.entry} onClose={() => setModal(null)} />}
+      {modal?.kind === 'checkin' && <CheckInSheet date={date} onClose={() => setModal(null)} />}
       {modal?.kind === 'session' && <SessionSheet sessionId={modal.id} onClose={() => setModal(null)} />}
       {modal?.kind === 'quick' && (
         <TrainingLogSheet date={date} exercise={SEED_EXERCISES.find((e) => e.id === modal.exerciseId)} onClose={() => setModal(null)} />

@@ -87,9 +87,10 @@ The same choice always produces the same sessions.
 |---|---|---|
 | 1 | Adherence < 50 % | Condensed |
 | 2 | Adherence < 75 % | Repeat |
-| 3 | ≥ 2 lifts down, and more down than up | Lighter |
+| 3 | Poor recovery in the last 7 days (≥ 3 check-ins: average sleep < 6 h, energy ≤ 2 or soreness ≥ 4) | Lighter |
+| 3b | ≥ 2 lifts down, and more down than up | Lighter |
 | 4 | 6+ weeks without a lighter week | Lighter |
-| 5 | A lighter week is scheduled, but adherence ≥ 90 % and lifts are climbing | Skip it (lighter weeks don't add muscle by themselves — Coleman 2024) |
+| 5 | A lighter week is scheduled, but adherence ≥ 90 %, lifts are climbing and recovery is fine | Skip it (lighter weeks don't add muscle by themselves — Coleman 2024) |
 | 6 | Otherwise | Progress |
 
 The AI coach sees the same data and the rule-based pick. It can only choose among these options, and you can overrule it with a tap.

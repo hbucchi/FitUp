@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ActivePlan, BodyLog, Exercise, Food, FoodEntry, NutritionPlan, Objective, PlanReview, PlannedSession, Profile, TrainingEntry } from '../domain/types';
+import type { ActivePlan, BodyLog, CheckIn, Exercise, Food, FoodEntry, NutritionPlan, Objective, PlanReview, PlannedSession, Profile, TrainingEntry } from '../domain/types';
 
 /**
  * Local-first app state. Persisted to localStorage for the MVP; the same shape
@@ -21,6 +21,7 @@ export interface AppState {
   nutritionPlan?: NutritionPlan;
   plannedSessions: PlannedSession[];
   reviews: PlanReview[];
+  checkIns: CheckIn[];
 
   setProfile: (p: Profile) => void;
   logBody: (b: BodyLog) => void;
@@ -42,6 +43,7 @@ export interface AppState {
   /** apply a week choice: open sessions of this plan from `fromWeek` on are replaced */
   replacePlanFrom: (plan: ActivePlan, fromWeek: number, sessions: PlannedSession[]) => void;
   addReview: (r: PlanReview) => void;
+  saveCheckIn: (c: CheckIn) => void;
   resetAll: () => void;
 }
 
@@ -62,6 +64,7 @@ const empty = {
   nutritionPlan: undefined,
   plannedSessions: [],
   reviews: [],
+  checkIns: [],
 };
 
 export const useStore = create<AppState>()(
@@ -114,6 +117,8 @@ export const useStore = create<AppState>()(
           ],
         })),
       addReview: (r) => set((s) => ({ reviews: [r, ...s.reviews].slice(0, 15) })),
+      saveCheckIn: (c) =>
+        set((s) => ({ checkIns: [...s.checkIns.filter((x) => x.date !== c.date), c].sort((a, b) => a.date.localeCompare(b.date)) })),
       resetAll: () => set({ ...empty }),
     }),
     { name: 'micenae:v1', version: 1 },

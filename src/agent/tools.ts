@@ -101,6 +101,23 @@ export const TOOLS: ToolDef[] = [
       required: ['exercise_id'],
     },
   },
+  {
+    name: 'log_checkin',
+    description:
+      "Record the user's daily check-in when they mention sleep, mood, energy, stress or soreness. Scales are 1 (low) to 5 (high). Only include what they said; it merges with what's already logged today.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        sleep_hours: { type: 'number', minimum: 0, maximum: 16 },
+        sleep_quality: { type: 'integer', minimum: 1, maximum: 5 },
+        mood: { type: 'integer', minimum: 1, maximum: 5 },
+        energy: { type: 'integer', minimum: 1, maximum: 5 },
+        stress: { type: 'integer', minimum: 1, maximum: 5 },
+        soreness: { type: 'integer', minimum: 1, maximum: 5 },
+        note: { type: 'string' },
+      },
+    },
+  },
 ];
 
 const r1 = (v: number | undefined) => (v == null ? undefined : Math.round(v * 10) / 10);
@@ -194,6 +211,29 @@ export function executeTool(name: string, input: Input, ctx: AgentContext): unkn
       ctx.logged.push({ kind: 'training', entry });
       return { logged: true, entry_id: entry.id, exercise: ex.name, minutes, kcal: entry.kcal, kcal_range: `${est.low}-${est.high}`, method: est.method };
     }
+    case 'log_checkin': {
+      const scale = (v: unknown) => {
+        if (v == null) return undefined;
+        const n = Math.round(Number(v));
+        if (!(n >= 1 && n <= 5)) throw new ToolError('Scales go from 1 to 5.');
+        return n;
+      };
+      const hours = input.sleep_hours != null ? Number(input.sleep_hours) : undefined;
+      if (hours != null && !(hours >= 0 && hours <= 16)) throw new ToolError('sleep_hours must be between 0 and 16.');
+      const prev = store.checkIns.find((c) => c.date === ctx.date) ?? { date: ctx.date };
+      const next = {
+        ...prev,
+        ...(hours != null && { sleepHours: Math.round(hours * 2) / 2 }),
+        ...(input.sleep_quality != null && { sleepQuality: scale(input.sleep_quality) }),
+        ...(input.mood != null && { mood: scale(input.mood) }),
+        ...(input.energy != null && { energy: scale(input.energy) }),
+        ...(input.stress != null && { stress: scale(input.stress) }),
+        ...(input.soreness != null && { soreness: scale(input.soreness) }),
+        ...(input.note && { note: String(input.note) }),
+      };
+      store.saveCheckIn(next);
+      return { logged: true, checkin: next };
+    }
     default:
       throw new ToolError(`Unknown tool ${name}`);
   }
@@ -202,7 +242,7 @@ export function executeTool(name: string, input: Input, ctx: AgentContext): unkn
 export function systemPrompt(ctx: AgentContext, now = new Date()): string {
   const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   return `You are the logging assistant inside Micenae, a training and nutrition diary.
-The user describes (in text or a transcribed voice note) what they ate and/or how they trained. Record it in their diary for ${ctx.date}. The current local time is ${time}.
+The user describes (in text or a transcribed voice note) what they ate, how they trained and/or how they feel. Record it in their diary for ${ctx.date}. The current local time is ${time}.
 
 How to work:
 - Split the description into individual foods and exercises. Log each one exactly once.
@@ -211,6 +251,7 @@ How to work:
 - Meals: ${MEALS.join(', ')}. Use the meal the user names. Otherwise infer it from the time mentioned, or from the current time (05–11 breakfast, 11–15 lunch, 18–22 dinner, otherwise snack). Set "time" when the user states one.
 - Only call create_food when 2 sensible searches find nothing suitable (e.g. a specific restaurant dish or a branded product). Give a careful per-serving estimate.
 - For training, call search_exercises, then log_training with the details given.
+- If they mention sleep, mood, energy, stress or soreness, call log_checkin (scales 1–5; "tired" ≈ energy 2, "great" ≈ 5).
 - If a tool returns an error, correct the call and retry.
 - Never ask questions. Make reasonable assumptions instead.
 

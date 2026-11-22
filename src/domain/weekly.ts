@@ -1,4 +1,4 @@
-import type { ActivePlan, PlannedSession, TrainingEntry } from './types';
+import type { ActivePlan, CheckIn, PlannedSession, TrainingEntry } from './types';
 import { addDays, planChoices, planWeekStart, weekStructure, type WeekOption } from './programs';
 
 /**
@@ -13,11 +13,13 @@ import { addDays, planChoices, planWeekStart, weekStructure, type WeekOption } f
  * Rules (also the baseline the AI coach sees)
  *  1. adherence < 50 %  → condensed week (fewer, longer sessions you can actually complete)
  *  2. adherence < 75 %  → repeat last week (consolidate before adding load)
- *  3. lifts declining (≥ 2, more down than up) → lighter week now
- *  4. 6+ weeks without a lighter week → lighter week now
- *  5. scheduled lighter week, but adherence high and lifts climbing → skip it (it doesn't add muscle
- *     by itself — Coleman 2024)
- *  6. otherwise → progress as planned
+ *  3. poor recovery over the last 7 days (≥ 3 check-ins: sleep < 6 h, energy ≤ 2 or soreness ≥ 4
+ *     on average) → lighter week now
+ *  4. lifts declining (≥ 2, more down than up) → lighter week now
+ *  5. 6+ weeks without a lighter week → lighter week now
+ *  6. scheduled lighter week, but adherence high, lifts climbing and recovery fine → skip it (it
+ *     doesn't add muscle by itself — Coleman 2024)
+ *  7. otherwise → progress as planned
  */
 
 export interface TrainingSignals {
@@ -28,11 +30,28 @@ export interface TrainingSignals {
   declined: number;
   trends: { name: string; changePct: number }[];
   weeksSinceLighter: number;
+  /** last 7 days of check-ins */
+  recovery: { checkIns: number; sleepAvg?: number; energyAvg?: number; sorenessAvg?: number; moodAvg?: number; poor: boolean };
+}
+
+const avg = (xs: (number | undefined)[]) => {
+  const v = xs.filter((x): x is number => typeof x === 'number');
+  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : undefined;
+};
+
+export function recoverySignals(checkIns: CheckIn[], today: string): TrainingSignals['recovery'] {
+  const recent = checkIns.filter((c) => c.date >= addDays(today, -7) && c.date <= today);
+  const sleepAvg = avg(recent.map((c) => c.sleepHours));
+  const energyAvg = avg(recent.map((c) => c.energy));
+  const sorenessAvg = avg(recent.map((c) => c.soreness));
+  const moodAvg = avg(recent.map((c) => c.mood));
+  const poor = recent.length >= 3 && ((sleepAvg ?? 8) < 6 || (energyAvg ?? 3) <= 2 || (sorenessAvg ?? 3) >= 4);
+  return { checkIns: recent.length, sleepAvg, energyAvg, sorenessAvg, moodAvg, poor };
 }
 
 const e1rm = (kg: number, reps: number) => kg * (1 + reps / 30);
 
-export function trainingSignals(plan: ActivePlan, sessions: PlannedSession[], training: TrainingEntry[], today: string, targetWeek: number): TrainingSignals {
+export function trainingSignals(plan: ActivePlan, sessions: PlannedSession[], training: TrainingEntry[], today: string, targetWeek: number, checkIns: CheckIn[] = []): TrainingSignals {
   const from = addDays(today, -14);
   const due = sessions.filter((s) => s.date >= from && s.date < today);
   const done = due.filter((s) => s.status === 'done').length;
@@ -75,6 +94,7 @@ export function trainingSignals(plan: ActivePlan, sessions: PlannedSession[], tr
     declined: trends.filter((t) => t.changePct < -2).length,
     trends,
     weeksSinceLighter,
+    recovery: recoverySignals(checkIns, today),
   };
 }
 
@@ -96,11 +116,16 @@ export function chooseByRules(options: WeekOption[], s: TrainingSignals): { opti
     return { option: get('condensed')!, reason: `${s.done} of ${s.due} sessions done — a shorter week you can finish.` };
   if (s.adherence != null && s.adherence < 0.75 && get('repeat'))
     return { option: get('repeat')!, reason: `${pct}% of sessions done — repeat before progressing.` };
+  if (s.recovery.poor && get('lighter')) {
+    const r = s.recovery;
+    const why = (r.sleepAvg ?? 8) < 6 ? `sleep averaged ${r.sleepAvg!.toFixed(1)} h` : (r.energyAvg ?? 3) <= 2 ? 'energy has been low' : 'soreness has been high';
+    return { option: get('lighter')!, reason: `Recovery is low (${why}) — lighter week.` };
+  }
   if (s.declined >= 2 && s.declined > s.improved && get('lighter'))
     return { option: get('lighter')!, reason: `${s.declined} lifts went down — time to recover.` };
   if (s.weeksSinceLighter >= 6 && get('lighter'))
     return { option: get('lighter')!, reason: `${s.weeksSinceLighter} weeks without a break — time to recover.` };
-  if (get('skip-deload') && s.adherence != null && s.adherence >= 0.9 && s.improved >= 2 && s.declined === 0)
+  if (get('skip-deload') && s.adherence != null && s.adherence >= 0.9 && s.improved >= 2 && s.declined === 0 && !s.recovery.poor)
     return { option: get('skip-deload')!, reason: `Strong weeks — no break needed.` };
   return {
     option: standard,
