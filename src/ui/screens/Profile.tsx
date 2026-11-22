@@ -8,6 +8,9 @@ import { Sheet } from '../components/Sheet';
 import { ProfileForm } from './ProfileForm';
 import { AssistantSettingsForm } from './AssistantSettings';
 import { agentReady, useAssistant } from '../../agent/settings';
+import { signInWithGoogle, signOut, useAuthUser } from '../../firebase/auth';
+import { useSession } from '../../firebase/session';
+import { signOutAndClear } from '../../firebase/sync';
 
 export function ProfileScreen() {
   const s = useStore();
@@ -21,6 +24,8 @@ export function ProfileScreen() {
   const [assistantOpen, setAssistantOpen] = useState(false);
   const assistant = useAssistant();
   const assistantOn = agentReady(assistant);
+  const user = useAuthUser();
+  const setLocalMode = useSession((x) => x.setLocalMode);
   const [w, setW] = useState<number | ''>(p.weightKg);
   const [bf, setBf] = useState<number | ''>(p.bodyFatPct);
 
@@ -111,10 +116,32 @@ export function ProfileScreen() {
       </section>
 
       <section className="card">
+        <div className="card-head">
+          <h2 className="h-section">Account</h2>
+          <span className={`badge ${user ? 'sea' : ''}`}>{user ? 'Synced' : 'This device only'}</span>
+        </div>
+        {user ? (
+          <div className="row between">
+            <div className="small" style={{ minWidth: 0 }}>
+              <div style={{ fontWeight: 600 }}>{user.displayName ?? 'Signed in'}</div>
+              <div className="muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email}</div>
+            </div>
+            {/* the account keeps the data; only this device's copy is cleared */}
+            <button className="btn" onClick={() => signOutAndClear(signOut)}>Sign out</button>
+          </div>
+        ) : (
+          <>
+            <p className="small muted" style={{ marginTop: 0 }}>Sign in to back up your diary and use it on all your devices. What you logged here comes with you.</p>
+            <button className="btn primary block" onClick={() => signInWithGoogle().then(() => setLocalMode(false)).catch((e) => alert(e.message))}>Continue with Google</button>
+          </>
+        )}
+      </section>
+
+      <section className="card">
         <h2 className="h-section" style={{ marginBottom: 10 }}>Data</h2>
         <div className="grid2">
           <button className="btn" onClick={exportData}>Export JSON</button>
-          <button className="btn danger" onClick={() => confirm('Erase all Micenae data on this device?') && s.resetAll()}>Erase all</button>
+          <button className="btn danger" onClick={() => confirm(user ? 'Erase ALL your Micenae data, in your account and on this device?' : 'Erase all Micenae data on this device?') && s.resetAll()}>Erase all</button>
         </div>
       </section>
 

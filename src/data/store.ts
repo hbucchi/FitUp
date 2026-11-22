@@ -7,6 +7,8 @@ import type { BodyLog, Exercise, Food, FoodEntry, Profile, TrainingEntry } from 
  * maps 1:1 onto Firestore collections (users/{uid}/foodEntries, …) for the online version.
  */
 export interface AppState {
+  /** Firebase uid whose data this local copy belongs to (undefined = local-only data). */
+  ownerUid?: string;
   profile?: Profile;
   bodyLog: BodyLog[];
   customFoods: Food[];
@@ -33,6 +35,7 @@ export const uid = () =>
   (globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`);
 
 const empty = {
+  ownerUid: undefined,
   profile: undefined,
   bodyLog: [],
   customFoods: [],

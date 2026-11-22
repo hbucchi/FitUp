@@ -7,6 +7,11 @@ import { Diary } from './ui/screens/Diary';
 import { Foods } from './ui/screens/Foods';
 import { Training } from './ui/screens/Training';
 import { ProfileScreen } from './ui/screens/Profile';
+import { SignIn } from './ui/screens/SignIn';
+import { useAuthUser } from './firebase/auth';
+import { db } from './firebase/app';
+import { startSync, type SyncStatus } from './firebase/sync';
+import { useSession } from './firebase/session';
 
 const TABS = [
   { id: 'diary', label: 'Diary', icon: IconDiary },
@@ -21,7 +26,40 @@ const fromHash = (): Tab => {
   return TABS.some((t) => t.id === h) ? h : 'diary';
 };
 
+function Splash({ text }: { text: string }) {
+  return (
+    <div className="app">
+      <div className="hero">
+        <div className="mark"><Logo size={56} /></div>
+        <p className="muted">{text}</p>
+      </div>
+    </div>
+  );
+}
+
+/** Decides between sign-in, account sync and local-only mode. */
 export function App() {
+  const user = useAuthUser();
+  const localMode = useSession((s) => s.localMode);
+  const setLocalMode = useSession((s) => s.setLocalMode);
+  const [sync, setSync] = useState<SyncStatus>({ state: 'connecting' });
+
+  useEffect(() => {
+    if (!user) return;
+    if (localMode) setLocalMode(false);
+    return startSync(db, user.uid, setSync);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
+
+  if (user === undefined) return <Splash text="Loading…" />;
+  if (!user && !localMode) return <SignIn onLocal={() => setLocalMode(true)} />;
+  if (user && sync.state === 'connecting') return <Splash text="Opening your diary…" />;
+  if (user && sync.state === 'error' && !useStore.getState().profile)
+    return <Splash text={`Could not load your account: ${sync.message}`} />;
+  return <Main />;
+}
+
+function Main() {
   const profile = useStore((s) => s.profile);
   const [tab, setTab] = useState<Tab>(fromHash);
   useEffect(() => {

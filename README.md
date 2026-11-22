@@ -12,6 +12,18 @@ Training and nutrition for the classical physique. This is a local-first MVP: a 
 - **Training:** 70 exercises split into aerobic and weight training. Aerobic is logged with duration, distance and intensity; strength with sets × reps × kg, pre-filled from your last session. Energy is estimated with MET values from the Compendium of Physical Activities.
 - **Trials:** placeholder for the upcoming baseline assessments.
 
+## Accounts and sync (Firebase)
+
+Firebase project: `micenae-ef391`. Sign-in is with Google (Firebase Auth). Data lives in Firestore under `users/{uid}/…`, and `firestore.rules` lets each user read and write only their own data. The app is offline-first: Firestore's local cache keeps working without signal and syncs when you're back online. "Continue without an account" keeps everything on the device, and it's uploaded the first time you sign in.
+
+```bash
+npm run emulators          # local Auth + Firestore emulators
+npm run dev:emulators      # app pointed at the emulators
+npm run test:rules         # security-rules tests (runs the emulator)
+npx firebase login         # once, on your machine
+npm run deploy             # build + deploy hosting and Firestore rules
+```
+
 ## Develop
 
 ```bash
