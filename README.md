@@ -8,6 +8,7 @@ Training and nutrition for the classical physique. This is a local-first MVP: a 
 - **Diary:** food by meal (breakfast, lunch, dinner, snacks, pre/post-workout) with time, quantity and unit (grams or the food's USDA household measures). Also training, a calorie ring, macro bars, and a full vitamin/mineral breakdown with %DV.
 - **Voice logging:** speak (or type) "for lunch I had 200 g of chicken breast, a cup of rice and two large eggs". The transcript is parsed into items, quantities, units, meal and time, then matched against the catalog. You review and adjust before anything is saved.
 - **Food catalog:** 7,770 foods from **USDA FoodData Central** (Foundation Foods + SR Legacy, public domain). SR Legacy is the USDA reference dataset that most consumer apps, MyFitnessPal included, built their generic foods on. You can also create your own foods per serving or per 100 g, with optional micronutrients.
+- **AI assistant (optional):** add a Claude or OpenAI API key in *Profile › Assistant*. Write or record what you ate or trained, and an agent searches your catalog with tools (`search_foods`, `log_food`, `create_food`, `search_exercises`, `log_training`) and logs it directly. Each item can be undone. Recorded or uploaded voice notes are transcribed by OpenAI or ElevenLabs Scribe (Claude's API doesn't take audio); live dictation uses the browser.
 - **Training:** 70 exercises split into aerobic and weight training. Aerobic is logged with duration, distance and intensity; strength with sets × reps × kg, pre-filled from your last session. Energy is estimated with MET values from the Compendium of Physical Activities.
 - **Trials:** placeholder for the upcoming baseline assessments.
 
@@ -32,6 +33,7 @@ npm run import:usda
 scripts/import-usda.mjs   USDA FDC → public/data/usda-foods.json (per 100 g, compact)
 src/domain/               pure logic: nutrients, body metrics, portions, exercises
 src/data/                 catalog loading, search engine, zustand store (localStorage)
+src/agent/                LLM agent loop (Claude Messages API / OpenAI Chat Completions), tools, transcription
 src/voice/                speech hook (Web Speech API), utterance parser, catalog matcher
 src/ui/                   screens and components
 ```

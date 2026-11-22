@@ -66,7 +66,7 @@ export interface FoodEntry {
   unit: string;
   grams: number;
   nutrients: Nutrients; // already scaled to `grams`
-  via?: 'manual' | 'voice';
+  via?: 'manual' | 'voice' | 'agent';
 }
 
 export type ExerciseKind = 'aerobic' | 'strength';

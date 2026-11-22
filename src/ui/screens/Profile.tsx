@@ -6,6 +6,8 @@ import { useStore } from '../../data/store';
 import { NumberField } from '../components/Fields';
 import { Sheet } from '../components/Sheet';
 import { ProfileForm } from './ProfileForm';
+import { AssistantSettingsForm } from './AssistantSettings';
+import { agentReady, useAssistant } from '../../agent/settings';
 
 export function ProfileScreen() {
   const s = useStore();
@@ -16,6 +18,9 @@ export function ProfileScreen() {
   const ideal = IDEAL[p.sex];
   const [editing, setEditing] = useState(false);
   const [weighIn, setWeighIn] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const assistant = useAssistant();
+  const assistantOn = agentReady(assistant);
   const [w, setW] = useState<number | ''>(p.weightKg);
   const [bf, setBf] = useState<number | ''>(p.bodyFatPct);
 
@@ -93,6 +98,19 @@ export function ProfileScreen() {
       </section>
 
       <section className="card">
+        <div className="card-head">
+          <h2 className="h-section">Assistant</h2>
+          <span className={`badge ${assistantOn ? 'sea' : ''}`}>{assistantOn ? (assistant.provider === 'anthropic' ? 'Claude' : 'OpenAI') : 'Off'}</span>
+        </div>
+        <p className="small muted" style={{ marginTop: 0 }}>
+          {assistantOn
+            ? 'Write or speak what you ate or trained, and it is logged to your diary automatically.'
+            : 'Add a Claude or OpenAI API key and the assistant will log your meals and training from text or voice notes.'}
+        </p>
+        <button className="btn block" onClick={() => setAssistantOpen(true)}>{assistantOn ? 'Assistant settings' : 'Set up assistant'}</button>
+      </section>
+
+      <section className="card">
         <h2 className="h-section" style={{ marginBottom: 10 }}>Data</h2>
         <div className="grid2">
           <button className="btn" onClick={exportData}>Export JSON</button>
@@ -107,6 +125,11 @@ export function ProfileScreen() {
             if (np.weightKg !== p.weightKg || np.bodyFatPct !== p.bodyFatPct) s.logBody({ date: todayISO(), weightKg: np.weightKg, bodyFatPct: np.bodyFatPct });
             setEditing(false);
           }} />
+        </Sheet>
+      )}
+      {assistantOpen && (
+        <Sheet title="Assistant" onClose={() => setAssistantOpen(false)}>
+          <AssistantSettingsForm onDone={() => setAssistantOpen(false)} />
         </Sheet>
       )}
       {weighIn && (

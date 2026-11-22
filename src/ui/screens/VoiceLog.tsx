@@ -12,6 +12,10 @@ import { Sheet } from '../components/Sheet';
 import { IconChevron, IconMic, IconStop } from '../components/Icons';
 import { MacroLine } from '../components/Macros';
 import { FoodSearchList } from './AddFood';
+import { AgentRun } from './AgentRun';
+import { agentReady, transcribeConfig, useAssistant } from '../../agent/settings';
+import { transcribeAudio } from '../../agent/transcribe';
+import { useRecorder } from '../../voice/useRecorder';
 
 interface Row {
   key: string;
@@ -36,6 +40,27 @@ export function VoiceLogSheet({ date, onClose }: { date: string; onClose: () => 
   const [replacing, setReplacing] = useState<string | null>(null);
 
   const text = speech.transcript;
+  const assistant = useAssistant();
+  const assistantOn = agentReady(assistant);
+  const cloudStt = transcribeConfig(assistant);
+  const recorder = useRecorder();
+  const [transcribing, setTranscribing] = useState(false);
+  const [sttError, setSttError] = useState<string | null>(null);
+  const [agentText, setAgentText] = useState<string | null>(null);
+
+  const handleAudio = async (blob: Blob) => {
+    if (!cloudStt) return;
+    setSttError(null);
+    setTranscribing(true);
+    try {
+      const t = await transcribeAudio(blob, cloudStt);
+      speech.setTranscript((prev) => (prev ? `${prev} ${t}` : t));
+    } catch (e) {
+      setSttError((e as Error).message);
+    } finally {
+      setTranscribing(false);
+    }
+  };
 
   const analyse = () => {
     if (speech.listening) speech.stop();
@@ -158,10 +183,34 @@ export function VoiceLogSheet({ date, onClose }: { date: string; onClose: () => 
     );
   }
 
+  if (agentText) {
+    return (
+      <Sheet title="Assistant" onClose={onClose}>
+        <AgentRun text={agentText} date={date} onDone={onClose} />
+      </Sheet>
+    );
+  }
+
+  const busy = transcribing || recorder.recording;
   return (
-    <Sheet title="Describe your meal" onClose={onClose}>
+    <Sheet title={assistantOn ? 'Tell the assistant' : 'Describe your meal'} onClose={onClose}>
       <div className="stack" style={{ textAlign: 'center' }}>
-        {speech.supported ? (
+        {cloudStt ? (
+          <>
+            <button className={`mic ${recorder.recording ? 'live' : ''}`} disabled={transcribing}
+              onClick={recorder.recording ? recorder.stop : () => recorder.start(handleAudio)}
+              aria-label={recorder.recording ? 'Stop recording' : 'Record a voice note'}>
+              {recorder.recording ? <IconStop /> : <IconMic />}
+            </button>
+            <div className="small muted">
+              {recorder.recording ? `Recording… ${recorder.seconds}s — tap to stop` : transcribing ? 'Transcribing…' : 'Tap to record a voice note'}
+            </div>
+            <label className="btn ghost small" style={{ alignSelf: 'center' }}>
+              Or upload an audio file
+              <input type="file" accept="audio/*" className="sr-only" onChange={(e) => e.target.files?.[0] && handleAudio(e.target.files[0])} />
+            </label>
+          </>
+        ) : speech.supported ? (
           <>
             <button className={`mic ${speech.listening ? 'live' : ''}`} onClick={speech.listening ? speech.stop : speech.start}
               aria-label={speech.listening ? 'Stop recording' : 'Start recording'}>
@@ -170,21 +219,34 @@ export function VoiceLogSheet({ date, onClose }: { date: string; onClose: () => 
             <div className="small muted">{speech.listening ? 'Listening… tap to stop' : 'Tap and say what you ate'}</div>
           </>
         ) : (
-          <div className="notice">Voice input isn't available in this browser (try Chrome, Edge or Safari). You can type the description instead.</div>
+          <div className="notice">Voice input isn't available in this browser. Type the description, or set up OpenAI or ElevenLabs transcription in Profile › Assistant.</div>
         )}
-        {speech.error && <div className="error">{speech.error}</div>}
+        {(speech.error || recorder.error || sttError) && <div className="error">{speech.error ?? recorder.error ?? sttError}</div>}
         {speech.listening && speech.interim && <div className="transcript"><span className="interim">{speech.interim}</span></div>}
         <label className="field" style={{ textAlign: 'left' }}>
-          Transcript <span className="muted">(you can edit it)</span>
+          {assistantOn ? 'What did you eat or train?' : 'Transcript'} <span className="muted">(you can type or edit)</span>
           <textarea className="input" value={text} onChange={(e) => speech.setTranscript(e.target.value)}
-            placeholder="For lunch I had 200 g of chicken breast, a cup of white rice and a tablespoon of olive oil" />
+            placeholder={assistantOn
+              ? 'Lunch: chicken burrito bowl with rice and guacamole, a Coke Zero. Then ran 5 km in 28 minutes.'
+              : 'For lunch I had 200 g of chicken breast, a cup of white rice and a tablespoon of olive oil'} />
         </label>
-        <button className="btn primary block" disabled={!text.trim() || !ready} onClick={analyse}>
-          {ready ? 'Find foods' : 'Loading catalog…'}
-        </button>
-        <p className="tiny muted" style={{ margin: 0 }}>
-          Speech is transcribed by your browser's speech service. Say quantities and units — “two eggs”, “150 grams of salmon”, “a cup of milk”.
-        </p>
+        {assistantOn ? (
+          <>
+            <button className="btn primary block" disabled={!text.trim() || !ready || busy} onClick={() => { if (speech.listening) speech.stop(); setAgentText(text.trim()); }}>
+              {ready ? 'Log it for me' : 'Loading catalog…'}
+            </button>
+            <button className="btn ghost block" disabled={!text.trim() || !ready || busy} onClick={analyse}>Review matches myself instead</button>
+          </>
+        ) : (
+          <>
+            <button className="btn primary block" disabled={!text.trim() || !ready || busy} onClick={analyse}>
+              {ready ? 'Find foods' : 'Loading catalog…'}
+            </button>
+            <p className="tiny muted" style={{ margin: 0 }}>
+              Say quantities and units — “two eggs”, “150 grams of salmon”, “a cup of milk”. Add a Claude or OpenAI key in Profile › Assistant to have it logged for you.
+            </p>
+          </>
+        )}
       </div>
     </Sheet>
   );
