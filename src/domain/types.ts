@@ -102,4 +102,107 @@ export interface TrainingEntry {
   sets?: StrengthSet[];
   kcal: number;
   notes?: string;
+  /** set when this was logged as part of a planned session */
+  planSessionId?: string;
+}
+
+// ── Objective & levels ─────────────────────────────────────────
+export type Experience = 'novice' | 'intermediate' | 'advanced';
+
+export interface BodySnapshot {
+  date: string;
+  weightKg: number;
+  bodyFatPct: number;
+  leanKg: number;
+  fatKg: number;
+}
+
+export interface Objective {
+  createdAt: string;
+  experience: Experience;
+  start: BodySnapshot;
+  target: { bodyFatPct: number; ffmiNorm: number; leanKg: number; fatKg: number; weightKg: number };
+  targetDate?: string;
+  /** highest level index the user has already been shown (for level-up moments) */
+  levelSeen: number;
+}
+
+// ── Training plans ─────────────────────────────────────────────
+export type SlotKind = 'compound' | 'isolation' | 'cardio';
+
+export interface PlannedExercise {
+  exerciseId: string;
+  name: string;
+  kind: SlotKind;
+  sets: number;
+  repsMin: number;
+  repsMax: number;
+  /** repetitions in reserve on the last set */
+  rir: number;
+  restSec: number;
+  /** cardio only */
+  minutes?: number;
+  note?: string;
+}
+
+export type SessionStatus = 'planned' | 'done' | 'skipped';
+
+export interface PlannedSession {
+  id: string;
+  planId: string;
+  date: string;
+  /** 1-based week of the plan */
+  week: number;
+  /** order within the plan (stable, used to keep sequence when rescheduling) */
+  order: number;
+  phase: 'accumulation' | 'deload';
+  focus: string;
+  title: string;
+  exercises: PlannedExercise[];
+  status: SessionStatus;
+  originalDate?: string;
+  note?: string;
+  completedAt?: string;
+}
+
+export interface ActivePlan {
+  id: string;
+  programId: string;
+  name: string;
+  weeks: number;
+  startDate: string;
+  endDate: string;
+  /** 0 = Sunday … 6 = Saturday */
+  trainingDays: number[];
+  createdAt: string;
+}
+
+// ── Nutrition plan ─────────────────────────────────────────────
+export interface MacroDay {
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+export interface NutritionPlan {
+  createdAt: string;
+  updatedAt: string;
+  phase: Goal;
+  /** target body-weight change, % per week (negative = loss) */
+  targetRatePct: number;
+  training: MacroDay;
+  rest: MacroDay;
+  fiber: number;
+  mealsPerDay: number;
+  /** grams of protein per meal */
+  proteinPerMeal: number;
+}
+
+export interface PlanReview {
+  id: string;
+  date: string;
+  by: 'rules' | 'assistant';
+  summary: string;
+  changes: string[];
 }

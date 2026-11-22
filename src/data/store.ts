@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { BodyLog, Exercise, Food, FoodEntry, Profile, TrainingEntry } from '../domain/types';
+import type { ActivePlan, BodyLog, Exercise, Food, FoodEntry, NutritionPlan, Objective, PlanReview, PlannedSession, Profile, TrainingEntry } from '../domain/types';
 
 /**
  * Local-first app state. Persisted to localStorage for the MVP; the same shape
@@ -16,6 +16,11 @@ export interface AppState {
   foodEntries: FoodEntry[];
   trainingEntries: TrainingEntry[];
   recentFoodIds: string[];
+  objective?: Objective;
+  activePlan?: ActivePlan;
+  nutritionPlan?: NutritionPlan;
+  plannedSessions: PlannedSession[];
+  reviews: PlanReview[];
 
   setProfile: (p: Profile) => void;
   logBody: (b: BodyLog) => void;
@@ -28,6 +33,13 @@ export interface AppState {
   updateTraining: (t: TrainingEntry) => void;
   removeTraining: (id: string) => void;
   saveCustomExercise: (e: Exercise) => void;
+  setObjective: (o: Objective | undefined) => void;
+  setNutritionPlan: (n: NutritionPlan | undefined) => void;
+  /** start a plan: future open sessions of any previous plan are removed, history is kept */
+  startPlan: (plan: ActivePlan, sessions: PlannedSession[], today: string) => void;
+  endPlan: (today: string) => void;
+  updateSessions: (sessions: PlannedSession[]) => void;
+  addReview: (r: PlanReview) => void;
   resetAll: () => void;
 }
 
@@ -43,6 +55,11 @@ const empty = {
   foodEntries: [],
   trainingEntries: [],
   recentFoodIds: [],
+  objective: undefined,
+  activePlan: undefined,
+  nutritionPlan: undefined,
+  plannedSessions: [],
+  reviews: [],
 };
 
 export const useStore = create<AppState>()(
@@ -72,6 +89,21 @@ export const useStore = create<AppState>()(
       removeTraining: (id) => set((s) => ({ trainingEntries: s.trainingEntries.filter((x) => x.id !== id) })),
       saveCustomExercise: (e) =>
         set((s) => ({ customExercises: [e, ...s.customExercises.filter((x) => x.id !== e.id)] })),
+      setObjective: (objective) => set({ objective }),
+      setNutritionPlan: (nutritionPlan) => set({ nutritionPlan }),
+      startPlan: (plan, sessions, today) =>
+        set((s) => ({
+          activePlan: plan,
+          plannedSessions: [...s.plannedSessions.filter((x) => x.status !== 'planned' || x.date < today), ...sessions],
+        })),
+      endPlan: (today) =>
+        set((s) => ({ activePlan: undefined, plannedSessions: s.plannedSessions.filter((x) => x.status !== 'planned' || x.date < today) })),
+      updateSessions: (changed) =>
+        set((s) => {
+          const byId = new Map(changed.map((x) => [x.id, x]));
+          return { plannedSessions: s.plannedSessions.map((x) => byId.get(x.id) ?? x) };
+        }),
+      addReview: (r) => set((s) => ({ reviews: [r, ...s.reviews].slice(0, 15) })),
       resetAll: () => set({ ...empty }),
     }),
     { name: 'micenae:v1', version: 1 },

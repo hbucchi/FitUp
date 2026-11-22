@@ -89,6 +89,29 @@ export const SEED_EXERCISES: Exercise[] = [
   strength('clean', 'Power clean', 'Full body', 'Barbell', 6.0),
   strength('farmer', "Farmer's carry", 'Full body', 'Dumbbells', 6.0),
   strength('burpee', 'Burpee', 'Full body', 'Bodyweight', 8.0),
+
+  // ── Variants used by the periodised programs ─────────────
+  strength('db-bench', 'Dumbbell bench press', 'Chest', 'Dumbbells'),
+  strength('machine-press', 'Machine chest press', 'Chest', 'Machine'),
+  strength('incline-bb', 'Incline barbell press', 'Chest', 'Barbell'),
+  strength('incline-machine', 'Incline machine press', 'Chest', 'Machine'),
+  strength('pec-deck', 'Pec deck', 'Chest', 'Machine', 3.5),
+  strength('neutral-pulldown', 'Neutral-grip lat pulldown', 'Back', 'Cable', 3.5),
+  strength('chest-row', 'Chest-supported row', 'Back', 'Machine'),
+  strength('hack-squat', 'Hack squat', 'Legs', 'Machine', 6.0),
+  strength('db-rdl', 'Dumbbell Romanian deadlift', 'Legs', 'Dumbbells'),
+  strength('leg-curl-seated', 'Seated leg curl', 'Legs', 'Machine', 3.5),
+  strength('reverse-lunge', 'Reverse lunge', 'Legs', 'Dumbbells'),
+  strength('calf-seated', 'Seated calf raise', 'Legs', 'Machine', 3.5),
+  strength('calf-legpress', 'Leg press calf raise', 'Legs', 'Machine', 3.5),
+  strength('machine-shoulder', 'Machine shoulder press', 'Shoulders', 'Machine'),
+  strength('cable-lateral', 'Cable lateral raise', 'Shoulders', 'Cable', 3.5),
+  strength('machine-lateral', 'Machine lateral raise', 'Shoulders', 'Machine', 3.5),
+  strength('reverse-pec-deck', 'Reverse pec deck', 'Shoulders', 'Machine', 3.5),
+  strength('incline-curl', 'Incline dumbbell curl', 'Arms', 'Dumbbells', 3.5),
+  strength('preacher-curl', 'Preacher curl', 'Arms', 'EZ bar', 3.5),
+  strength('cable-curl', 'Cable curl', 'Arms', 'Cable', 3.5),
+  strength('overhead-ext', 'Overhead cable triceps extension', 'Arms', 'Cable', 3.5),
 ];
 
 export const INTENSITY = {

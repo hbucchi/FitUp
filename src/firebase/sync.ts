@@ -26,7 +26,9 @@ import { useStore, type AppState } from '../data/store';
  * Firestore's persistent cache makes both directions work offline.
  */
 
-export const COLLECTIONS = ['foodEntries', 'trainingEntries', 'customFoods', 'customExercises', 'bodyLog'] as const;
+export const COLLECTIONS = ['foodEntries', 'trainingEntries', 'customFoods', 'customExercises', 'bodyLog', 'plannedSessions'] as const;
+/** Small per-user documents stored as fields of users/{uid}. */
+export const USER_FIELDS = ['profile', 'recentFoodIds', 'objective', 'activePlan', 'nutritionPlan', 'reviews'] as const;
 type CollectionKey = (typeof COLLECTIONS)[number];
 type Item = { id?: string; date?: string };
 
@@ -71,18 +73,13 @@ function writeChanges(userRef: DocumentReference, prev: Partial<AppState>, next:
     for (const item of upserts) ops.push((b) => b.set(doc(userRef, key, idOf(key, item)), strip(item)));
     for (const id of deletes) ops.push((b) => b.delete(doc(userRef, key, id)));
   }
-  if (prev.profile !== next.profile || prev.recentFoodIds !== next.recentFoodIds) {
-    ops.push((b) =>
-      b.set(
-        userRef,
-        {
-          profile: next.profile ? strip(next.profile) : deleteField(),
-          recentFoodIds: next.recentFoodIds,
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true },
-      ),
-    );
+  if (USER_FIELDS.some((f) => prev[f] !== next[f])) {
+    const data: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+    for (const f of USER_FIELDS) {
+      const v = next[f];
+      data[f] = v === undefined ? deleteField() : strip(v as object);
+    }
+    ops.push((b) => b.set(userRef, data, { merge: true }));
   }
   return ops;
 }
@@ -138,7 +135,14 @@ export function startSync(db: Firestore, uid: string, onStatus: (s: SyncStatus) 
         userRef,
         (d) => {
           const data = d.data() ?? {};
-          applyRemote({ profile: data.profile, recentFoodIds: data.recentFoodIds ?? [] });
+          applyRemote({
+            profile: data.profile,
+            recentFoodIds: data.recentFoodIds ?? [],
+            objective: data.objective,
+            activePlan: data.activePlan,
+            nutritionPlan: data.nutritionPlan,
+            reviews: data.reviews ?? [],
+          });
           if (!userLoaded) (userLoaded = true), loaded();
         },
         fail,

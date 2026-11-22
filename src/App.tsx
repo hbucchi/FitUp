@@ -7,6 +7,9 @@ import { Diary } from './ui/screens/Diary';
 import { Foods } from './ui/screens/Foods';
 import { Training } from './ui/screens/Training';
 import { ProfileScreen } from './ui/screens/Profile';
+import { PlanScreen } from './ui/screens/Plan';
+import { LevelUp } from './ui/screens/LevelUp';
+import { IconPlan } from './ui/components/IconsExtra';
 import { SignIn } from './ui/screens/SignIn';
 import { useAuthUser } from './firebase/auth';
 import { db } from './firebase/app';
@@ -15,6 +18,7 @@ import { useSession } from './firebase/session';
 
 const TABS = [
   { id: 'diary', label: 'Diary', icon: IconDiary },
+  { id: 'plan', label: 'Plan', icon: IconPlan },
   { id: 'foods', label: 'Foods', icon: IconFoods },
   { id: 'training', label: 'Training', icon: IconTraining },
   { id: 'profile', label: 'Profile', icon: IconProfile },
@@ -82,11 +86,13 @@ function Main() {
         <div className="meander" />
         <main>
           {tab === 'diary' && <Diary />}
+          {tab === 'plan' && <PlanScreen />}
           {tab === 'foods' && <Foods />}
           {tab === 'training' && <Training />}
           {tab === 'profile' && <ProfileScreen />}
         </main>
       </div>
+      <LevelUp />
       <nav className="tabbar" aria-label="Main">
         <div className="tabbar-inner">
           {TABS.map((t) => (

@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { bodyMetrics, dailyTargets, GOAL_LABEL, IDEAL, idealGap } from '../../domain/metrics';
+import { bodyMetrics, dailyTargets, GOAL_LABEL } from '../../domain/metrics';
+import { ascent, LEVELS } from '../../domain/objective';
+import { Emblem } from '../components/Emblem';
 import { fmt } from '../../domain/nutrients';
 import { todayISO } from '../../domain/dates';
 import { useStore } from '../../data/store';
@@ -17,8 +19,6 @@ export function ProfileScreen() {
   const p = s.profile!;
   const m = bodyMetrics(p);
   const t = dailyTargets(p);
-  const gap = idealGap(p);
-  const ideal = IDEAL[p.sex];
   const [editing, setEditing] = useState(false);
   const [weighIn, setWeighIn] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -30,8 +30,8 @@ export function ProfileScreen() {
   const [bf, setBf] = useState<number | ''>(p.bodyFatPct);
 
   const exportData = () => {
-    const { profile, bodyLog, customFoods, customExercises, foodEntries, trainingEntries } = s;
-    const blob = new Blob([JSON.stringify({ profile, bodyLog, customFoods, customExercises, foodEntries, trainingEntries }, null, 2)], { type: 'application/json' });
+    const { profile, bodyLog, customFoods, customExercises, foodEntries, trainingEntries, objective, activePlan, plannedSessions, nutritionPlan, reviews } = s;
+    const blob = new Blob([JSON.stringify({ profile, bodyLog, customFoods, customExercises, foodEntries, trainingEntries, objective, activePlan, plannedSessions, nutritionPlan, reviews }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `micenae-${todayISO()}.json`;
@@ -39,7 +39,6 @@ export function ProfileScreen() {
     URL.revokeObjectURL(a.href);
   };
 
-  const pct = Math.round(gap.progress * 100);
   return (
     <>
       <div className="row between" style={{ marginBottom: 14 }}>
@@ -50,22 +49,19 @@ export function ProfileScreen() {
         <button className="btn" onClick={() => setEditing(true)}>Edit</button>
       </div>
 
-      <section className="card">
-        <div className="card-head">
-          <h2 className="h-section">Path to the ideal</h2>
-          <span className="badge sea">{pct}%</span>
-        </div>
-        <div className="bar" style={{ height: 10 }}><span style={{ width: `${pct}%`, background: 'linear-gradient(90deg, var(--sea), var(--accent))' }} /></div>
-        <p className="small muted">
-          The classical physique: a normalised FFMI of about {ideal.ffmi} at roughly {ideal.bodyFatPct}% body fat — lean, muscular, and attainable naturally.
-        </p>
-        <div className="grid2">
-          <div className="stat"><div className="k">Lean mass to build</div><div className="v">{fmt(gap.leanToGainKg, 1)} kg</div></div>
-          <div className="stat"><div className="k">Fat to lose</div><div className="v">{fmt(gap.fatToLoseKg, 1)} kg</div></div>
-          <div className="stat"><div className="k">Target weight</div><div className="v">{fmt(gap.targetWeightKg, 1)} kg</div></div>
-          <div className="stat"><div className="k">Target lean mass</div><div className="v">{fmt(gap.targetLeanKg, 1)} kg</div></div>
-        </div>
-      </section>
+      {(() => {
+        const a = s.objective ? ascent(s.objective, p) : undefined;
+        return (
+          <a href="#plan" className="card row" style={{ textDecoration: 'none', color: 'inherit', gap: 14 }}>
+            <Emblem level={a?.level ?? 0} size={48} />
+            <div style={{ flex: 1 }}>
+              <div className="eyebrow">Your rank</div>
+              <div className="h-section">{LEVELS[a?.level ?? 0].name}</div>
+              <div className="tiny muted">{a ? `${Math.round(a.progress * 100)}% of the way to your objective` : 'Set your objective in the Plan tab'}</div>
+            </div>
+          </a>
+        );
+      })()}
 
       <section className="card">
         <div className="card-head">
@@ -87,7 +83,7 @@ export function ProfileScreen() {
         )}
       </section>
 
-      <section className="card">
+      {!s.nutritionPlan && <section className="card">
         <h2 className="h-section" style={{ marginBottom: 10 }}>Daily targets</h2>
         <div className="small muted" style={{ marginBottom: 10 }}>{GOAL_LABEL[p.goal]}</div>
         <div className="grid2">
@@ -100,7 +96,7 @@ export function ProfileScreen() {
           BMR {Math.round(m.bmr)} kcal (Katch–McArdle, from lean mass) × activity = maintenance {Math.round(m.tdee)} kcal.
           Protein is set at 2.2 g per kg of lean mass.
         </p>
-      </section>
+      </section>}
 
       <section className="card">
         <div className="card-head">

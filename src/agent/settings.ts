@@ -59,3 +59,11 @@ export function transcribeConfig(s: AssistantSettings): TranscribeConfig | null 
   if (s.transcriber === 'elevenlabs' && s.elevenlabsKey.trim()) return { provider: 'elevenlabs', apiKey: s.elevenlabsKey.trim(), model: s.elevenlabsModel };
   return null;
 }
+
+/** The configured agent model, or null when no key is set. */
+export function agentConfig(s: AssistantSettings) {
+  if (!agentReady(s)) return null;
+  return s.provider === 'anthropic'
+    ? { provider: 'anthropic' as const, apiKey: s.anthropicKey.trim(), model: s.anthropicModel }
+    : { provider: 'openai' as const, apiKey: s.openaiKey.trim(), model: s.openaiModel };
+}

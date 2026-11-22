@@ -17,6 +17,7 @@ test('a user can read and write their own diary', async () => {
   const alice = env.authenticatedContext('alice').firestore();
   await assertSucceeds(setDoc(doc(alice, 'users/alice'), { profile: { name: 'A' } }));
   await assertSucceeds(setDoc(doc(alice, 'users/alice/foodEntries/e1'), { foodName: 'Egg' }));
+  await assertSucceeds(setDoc(doc(alice, 'users/alice/plannedSessions/s1'), { title: 'Upper A' }));
   await assertSucceeds(getDoc(doc(alice, 'users/alice/foodEntries/e1')));
   await assertSucceeds(deleteDoc(doc(alice, 'users/alice/foodEntries/e1')));
 });

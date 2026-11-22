@@ -2,9 +2,10 @@ import { useMemo, useState } from 'react';
 import type { FoodEntry, Meal, TrainingEntry } from '../../domain/types';
 import { MEALS, MEAL_LABEL } from '../../domain/types';
 import { fmt, sumNutrients } from '../../domain/nutrients';
-import { dailyTargets } from '../../domain/metrics';
 import { mealForNow, prettyDate, shiftDate, todayISO } from '../../domain/dates';
 import { useStore } from '../../data/store';
+import { sessionsOn, targetsFor } from '../../data/planSelectors';
+import { SessionSheet } from './Session';
 import { IconChevron, IconMic, IconPlus } from '../components/Icons';
 import { MacroBar, MacroLine, Ring } from '../components/Macros';
 import { NutrientTable } from '../components/NutrientTable';
@@ -18,6 +19,7 @@ type Modal =
   | { kind: 'voice' }
   | { kind: 'exercise' }
   | { kind: 'edit-training'; entry: TrainingEntry }
+  | { kind: 'session'; id: string }
   | null;
 
 export function Diary() {
@@ -32,7 +34,10 @@ export function Diary() {
   const training = useMemo(() => allTraining.filter((e) => e.date === date), [allTraining, date]);
   const totals = useMemo(() => sumNutrients(food.map((e) => e.nutrients)), [food]);
   const burned = training.reduce((s, t) => s + t.kcal, 0);
-  const targets = dailyTargets(profile);
+  const nutritionPlan = useStore((s) => s.nutritionPlan);
+  const plannedSessions = useStore((s) => s.plannedSessions);
+  const targets = useMemo(() => targetsFor({ profile, nutritionPlan, plannedSessions }, date), [profile, nutritionPlan, plannedSessions, date]);
+  const planned = useMemo(() => sessionsOn({ plannedSessions }, date), [plannedSessions, date]);
   const byTime = (a: { time?: string }, b: { time?: string }) => (a.time ?? '').localeCompare(b.time ?? '');
 
   return (
@@ -57,12 +62,29 @@ export function Diary() {
             <div className="row between small"><span className="muted">Fiber</span><span className="num">{fmt(totals.fiber)} / {targets.fiber} g</span></div>
           </div>
         </div>
+        {targets.dayType && (
+          <div className="tiny muted" style={{ marginTop: 10 }}>
+            {targets.dayType === 'training' ? 'Training day — a little more carbohydrate to fuel the session.' : 'Rest day targets.'}
+          </div>
+        )}
         <div className="macro-bars" style={{ marginTop: 16 }}>
           <MacroBar label="Protein" value={totals.protein ?? 0} target={targets.protein} color="var(--protein)" />
           <MacroBar label="Carbs" value={totals.carbs ?? 0} target={targets.carbs} color="var(--carbs)" />
           <MacroBar label="Fat" value={totals.fat ?? 0} target={targets.fat} color="var(--fat)" />
         </div>
       </section>
+
+      {planned.map((ps) => (
+        <button key={ps.id} className="card list-item" style={{ borderRadius: 'var(--radius)', border: '1px solid var(--line)', marginBottom: 14 }}
+          onClick={() => setModal({ kind: 'session', id: ps.id })}>
+          <div className="main">
+            <div className="eyebrow">{ps.status === 'done' ? 'Session completed' : 'Planned session'}</div>
+            <div className="title" style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 600 }}>{ps.title}</div>
+            <div className="sub">{ps.exercises.length} exercises · week {ps.week}</div>
+          </div>
+          <span className={`badge ${ps.status === 'done' ? 'sea' : ''}`}>{ps.status === 'done' ? 'Done' : 'Open'}</span>
+        </button>
+      ))}
 
       <div className="grid2" style={{ marginBottom: 14 }}>
         <button className="btn primary" onClick={() => setModal({ kind: 'voice' })}><IconMic /> Speak a meal</button>
@@ -159,6 +181,7 @@ export function Diary() {
       {modal?.kind === 'voice' && <VoiceLogSheet date={date} onClose={() => setModal(null)} />}
       {modal?.kind === 'exercise' && <ExercisePickerSheet date={date} onClose={() => setModal(null)} />}
       {modal?.kind === 'edit-training' && <TrainingLogSheet date={date} entry={modal.entry} onClose={() => setModal(null)} />}
+      {modal?.kind === 'session' && <SessionSheet sessionId={modal.id} onClose={() => setModal(null)} />}
     </>
   );
 }

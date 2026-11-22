@@ -1,4 +1,4 @@
-import { executeTool, systemPrompt, TOOLS, ToolError, type AgentContext } from './tools';
+import { executeTool, systemPrompt, TOOLS, ToolError, type AgentContext, type ToolDef } from './tools';
 import type { AgentProvider } from './settings';
 
 export interface AgentConfig {
@@ -13,9 +13,18 @@ export type AgentEvent =
 
 const MAX_STEPS = 12;
 
-function runTool(name: string, input: Record<string, unknown>, ctx: AgentContext, onEvent: (e: AgentEvent) => void) {
+/** A self-contained agent job: instructions, tools, the user's message, and how to run a tool. */
+export interface AgentTask {
+  system: string;
+  tools: ToolDef[];
+  user: string;
+  execute: (name: string, input: Record<string, any>) => unknown;
+  maxTokens?: number;
+}
+
+function runTool(name: string, input: Record<string, unknown>, task: AgentTask, onEvent: (e: AgentEvent) => void) {
   try {
-    const result = executeTool(name, input, ctx);
+    const result = task.execute(name, input);
     onEvent({ type: 'tool', name, input, ok: true });
     return { content: JSON.stringify(result), isError: false };
   } catch (e) {
@@ -36,8 +45,8 @@ async function post(url: string, headers: Record<string, string>, body: unknown,
 }
 
 /** Claude — Messages API with tool use. */
-async function runAnthropic(cfg: AgentConfig, text: string, ctx: AgentContext, onEvent: (e: AgentEvent) => void, signal?: AbortSignal) {
-  const messages: any[] = [{ role: 'user', content: text }];
+async function runAnthropic(cfg: AgentConfig, task: AgentTask, onEvent: (e: AgentEvent) => void, signal?: AbortSignal) {
+  const messages: any[] = [{ role: 'user', content: task.user }];
   for (let step = 0; step < MAX_STEPS; step++) {
     const res = await post(
       'https://api.anthropic.com/v1/messages',
@@ -47,7 +56,7 @@ async function runAnthropic(cfg: AgentConfig, text: string, ctx: AgentContext, o
         // required for calls made straight from a browser (personal-key MVP)
         'anthropic-dangerous-direct-browser-access': 'true',
       },
-      { model: cfg.model, max_tokens: 2048, system: systemPrompt(ctx), tools: TOOLS, messages },
+      { model: cfg.model, max_tokens: task.maxTokens ?? 2048, system: task.system, tools: task.tools, messages },
       signal,
     );
     messages.push({ role: 'assistant', content: res.content });
@@ -60,7 +69,7 @@ async function runAnthropic(cfg: AgentConfig, text: string, ctx: AgentContext, o
     messages.push({
       role: 'user',
       content: uses.map((u) => {
-        const r = runTool(u.name, u.input ?? {}, ctx, onEvent);
+        const r = runTool(u.name, u.input ?? {}, task, onEvent);
         return { type: 'tool_result', tool_use_id: u.id, content: r.content, is_error: r.isError };
       }),
     });
@@ -69,9 +78,9 @@ async function runAnthropic(cfg: AgentConfig, text: string, ctx: AgentContext, o
 }
 
 /** OpenAI — Chat Completions with function calling. */
-async function runOpenAI(cfg: AgentConfig, text: string, ctx: AgentContext, onEvent: (e: AgentEvent) => void, signal?: AbortSignal) {
-  const messages: any[] = [{ role: 'system', content: systemPrompt(ctx) }, { role: 'user', content: text }];
-  const tools = TOOLS.map((t) => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.input_schema } }));
+async function runOpenAI(cfg: AgentConfig, task: AgentTask, onEvent: (e: AgentEvent) => void, signal?: AbortSignal) {
+  const messages: any[] = [{ role: 'system', content: task.system }, { role: 'user', content: task.user }];
+  const tools = task.tools.map((t) => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.input_schema } }));
   for (let step = 0; step < MAX_STEPS; step++) {
     const res = await post('https://api.openai.com/v1/chat/completions', { authorization: `Bearer ${cfg.apiKey}` }, { model: cfg.model, messages, tools }, signal);
     const msg = res.choices?.[0]?.message;
@@ -90,13 +99,23 @@ async function runOpenAI(cfg: AgentConfig, text: string, ctx: AgentContext, onEv
       } catch {
         /* fall through with empty input — the tool will report what is missing */
       }
-      const r = runTool(c.function.name, input, ctx, onEvent);
+      const r = runTool(c.function.name, input, task, onEvent);
       messages.push({ role: 'tool', tool_call_id: c.id, content: r.content });
     }
   }
   throw new Error('The assistant took too many steps and was stopped.');
 }
 
+export function runAgentTask(cfg: AgentConfig, task: AgentTask, onEvent: (e: AgentEvent) => void, signal?: AbortSignal) {
+  return cfg.provider === 'anthropic' ? runAnthropic(cfg, task, onEvent, signal) : runOpenAI(cfg, task, onEvent, signal);
+}
+
+/** The food & training logger. */
 export function runAgent(cfg: AgentConfig, text: string, ctx: AgentContext, onEvent: (e: AgentEvent) => void, signal?: AbortSignal) {
-  return cfg.provider === 'anthropic' ? runAnthropic(cfg, text, ctx, onEvent, signal) : runOpenAI(cfg, text, ctx, onEvent, signal);
+  return runAgentTask(
+    cfg,
+    { system: systemPrompt(ctx), tools: TOOLS, user: text, execute: (name, input) => executeTool(name, input, ctx) },
+    onEvent,
+    signal,
+  );
 }
