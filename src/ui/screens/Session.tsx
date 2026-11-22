@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { PlannedExercise, StrengthSet, TrainingEntry } from '../../domain/types';
-import { exerciseKcal } from '../../domain/metrics';
-import { MINUTES_PER_SET } from '../../domain/exercises';
+import { estimateActivity } from '../../domain/energy';
 import { estimateMinutes } from '../../domain/programs';
 import { prettyDate, todayISO, nowHHMM } from '../../domain/dates';
 import { fmt } from '../../domain/nutrients';
@@ -11,10 +10,17 @@ import { useExercises } from './TrainingLog';
 
 const restLabel = (sec: number) => (sec >= 120 ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')} min` : `${sec} s`);
 
+const secLabel = (sec: number) => (sec >= 60 && sec % 60 === 0 ? `${sec / 60} min` : sec > 60 ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}` : `${sec} s`);
+
 export function prescription(e: PlannedExercise) {
-  if (e.kind === 'cardio') return `${e.minutes} min${e.note ? ` · ${e.note}` : ''}`;
+  if (e.kind === 'cardio') return `${e.minutes} min`;
+  if (e.kind === 'conditioning') return `${e.rounds} rounds × ${secLabel(e.workSec ?? 60)} on / ${secLabel(e.restSec)} off (~${e.minutes} min)`;
+  if (e.kind === 'power') return `${e.sets} × ${e.repsMin}–${e.repsMax} · explosive, maximum intent — stop when speed drops · rest ${restLabel(e.restSec)}`;
+  if (e.kind === 'prehab') return `${e.sets} × ${e.repsMin}–${e.repsMax} · controlled · rest ${restLabel(e.restSec)}`;
   return `${e.sets} × ${e.repsMin}–${e.repsMax} · ${e.rir === 0 ? 'to failure on the last set' : `${e.rir} rep${e.rir > 1 ? 's' : ''} in reserve`} · rest ${restLabel(e.restSec)}`;
 }
+
+const timed = (e: PlannedExercise) => e.kind === 'cardio' || e.kind === 'conditioning';
 
 export function SessionSheet({ sessionId, onClose }: { sessionId: string; onClose: () => void }) {
   const session = useStore((s) => s.plannedSessions.find((x) => x.id === sessionId));
@@ -33,15 +39,16 @@ export function SessionSheet({ sessionId, onClose }: { sessionId: string; onClos
 
   const [sets, setSets] = useState<Record<string, StrengthSet[]>>(() =>
     Object.fromEntries(
-      (session?.exercises ?? []).filter((e) => e.kind !== 'cardio').map((e) => {
+      (session?.exercises ?? []).filter((e) => !timed(e)).map((e) => {
         const prev = last.get(e.exerciseId)?.sets;
         const w = prev?.length ? Math.max(...prev.map((s) => s.weightKg)) : 0;
         return [e.exerciseId, Array.from({ length: e.sets }, () => ({ reps: 0, weightKg: w }))];
       }),
     ),
   );
+  // cardio: minutes done; conditioning: rounds done
   const [cardio, setCardio] = useState<Record<string, number>>(() =>
-    Object.fromEntries((session?.exercises ?? []).filter((e) => e.kind === 'cardio').map((e) => [e.exerciseId, e.minutes ?? 30])),
+    Object.fromEntries((session?.exercises ?? []).filter(timed).map((e) => [e.exerciseId, e.kind === 'conditioning' ? e.rounds ?? 0 : e.minutes ?? 30])),
   );
   if (!session) return null;
   const done = session.status === 'done';
@@ -54,19 +61,22 @@ export function SessionSheet({ sessionId, onClose }: { sessionId: string; onClos
     const date = session.date <= todayISO() ? session.date : todayISO();
     const time = nowHHMM();
     for (const e of session.exercises) {
-      const ex = library.find((x) => x.id === e.exerciseId);
-      const met = ex?.met ?? (e.kind === 'cardio' ? 7 : 5);
-      if (e.kind === 'cardio') {
-        const min = cardio[e.exerciseId] ?? 0;
-        if (min > 0) addTraining({ id: uid(), date, time, exerciseId: e.exerciseId, exerciseName: e.name, kind: 'aerobic', durationMin: min, kcal: exerciseKcal(met, weightKg, min), planSessionId: session.id });
+      const ex = library.find((x) => x.id === e.exerciseId) ?? { id: e.exerciseId, met: timed(e) ? 7 : 5, kind: timed(e) ? ('aerobic' as const) : ('strength' as const) };
+      if (timed(e)) {
+        const n = cardio[e.exerciseId] ?? 0;
+        const min = e.kind === 'conditioning' ? Math.round((n * ((e.workSec ?? 60) + e.restSec)) / 60) : n;
+        if (min <= 0) continue;
+        const est = estimateActivity({ exercise: ex, minutes: min, weightKg, intensity: e.kind === 'conditioning' ? 'vigorous' : 'moderate' });
+        addTraining({ id: uid(), date, time, exerciseId: e.exerciseId, exerciseName: e.name, kind: 'aerobic', durationMin: min, kcal: est.kcal, netKcal: est.netKcal, planSessionId: session.id, notes: e.kind === 'conditioning' ? `${n} rounds` : undefined });
         continue;
       }
       const performed = (sets[e.exerciseId] ?? []).filter((s) => s.reps > 0);
       if (!performed.length) continue;
-      const minutes = Math.round(performed.length * MINUTES_PER_SET);
+      const minutes = Math.max(1, Math.round((performed.length * (e.restSec + 45)) / 60));
+      const est = estimateActivity({ exercise: ex, minutes, weightKg });
       addTraining({
         id: uid(), date, time, exerciseId: e.exerciseId, exerciseName: e.name, kind: 'strength', durationMin: minutes,
-        sets: performed, kcal: exerciseKcal(met, weightKg, minutes), planSessionId: session.id,
+        sets: performed, kcal: est.kcal, netKcal: est.netKcal, planSessionId: session.id,
       });
     }
     updateSessions([{ ...session, status: 'done', completedAt: new Date().toISOString(), date }]);
@@ -126,11 +136,12 @@ export function SessionSheet({ sessionId, onClose }: { sessionId: string; onClos
                       Last time ({prev.date}): {prev.sets.map((s) => `${s.reps}${s.weightKg ? `×${fmt(s.weightKg)}` : ''}`).join(', ')}
                     </div>
                   ) : null}
-                  {e.kind === 'cardio' ? (
+                  {e.note && <div className="tiny" style={{ marginBottom: 8 }}>{e.note}</div>}
+                  {timed(e) ? (
                     <div className="row">
-                      <input className="input num" type="number" min={0} value={cardio[e.exerciseId] ?? 0} aria-label={`${e.name} minutes`}
+                      <input className="input num" type="number" min={0} value={cardio[e.exerciseId] ?? 0} aria-label={`${e.name} ${e.kind === 'conditioning' ? 'rounds' : 'minutes'}`}
                         onChange={(ev) => setCardio((c) => ({ ...c, [e.exerciseId]: Number(ev.target.value) }))} />
-                      <span className="small muted">min</span>
+                      <span className="small muted">{e.kind === 'conditioning' ? 'rounds done' : 'min'}</span>
                     </div>
                   ) : (
                     <div className="stack" style={{ gap: 6 }}>

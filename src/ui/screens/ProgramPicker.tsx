@@ -35,23 +35,30 @@ export function ProgramPickerSheet({ onClose }: { onClose: () => void }) {
   );
 
   if (!program) {
-    const sorted = [...PROGRAMS].sort((a, b) => Number(recommended(b, phase, s.objective?.experience)) - Number(recommended(a, phase, s.objective?.experience)));
+    const rec = (p: Program) => p.category === 'physique' && recommended(p, phase, s.objective?.experience);
+    const card = (p: Program) => (
+      <button key={p.id} className="card list-item" style={{ borderRadius: 'var(--radius)', border: '1px solid var(--line)', marginBottom: 0, alignItems: 'flex-start' }} onClick={() => pick(p)}>
+        <div className="main">
+          <div className="row" style={{ gap: 8 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 600 }}>{p.name}</div>
+            {rec(p) && <span className="badge sea">Recommended</span>}
+          </div>
+          <div className="tiny muted">{p.tagline} · {p.minWeeks === p.maxWeeks ? `${p.minWeeks} weeks` : `${p.minWeeks}–${p.maxWeeks} weeks`}</div>
+          <div className="small" style={{ marginTop: 6, color: 'var(--ink-2)' }}>{p.description}</div>
+        </div>
+        <IconChevron width={16} height={16} />
+      </button>
+    );
+    const physique = PROGRAMS.filter((p) => p.category === 'physique').sort((a, b) => Number(rec(b)) - Number(rec(a)));
+    const sport = PROGRAMS.filter((p) => p.category === 'sport');
     return (
       <Sheet title="Choose a program" onClose={onClose}>
         <div className="stack">
-          {sorted.map((p) => (
-            <button key={p.id} className="card list-item" style={{ borderRadius: 'var(--radius)', border: '1px solid var(--line)', marginBottom: 0, alignItems: 'flex-start' }} onClick={() => pick(p)}>
-              <div className="main">
-                <div className="row" style={{ gap: 8 }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 600 }}>{p.name}</div>
-                  {recommended(p, phase, s.objective?.experience) && <span className="badge sea">Recommended</span>}
-                </div>
-                <div className="tiny muted">{p.tagline} · {p.minWeeks === p.maxWeeks ? `${p.minWeeks} weeks` : `${p.minWeeks}–${p.maxWeeks} weeks`}</div>
-                <div className="small" style={{ marginTop: 6, color: 'var(--ink-2)' }}>{p.description}</div>
-              </div>
-              <IconChevron width={16} height={16} />
-            </button>
-          ))}
+          <div className="eyebrow">Physique</div>
+          {physique.map(card)}
+          <div className="eyebrow" style={{ marginTop: 8 }}>Sport & function</div>
+          <p className="tiny muted" style={{ margin: '-6px 0 0' }}>Strength, power, conditioning and injury prevention to do alongside your sport.</p>
+          {sport.map(card)}
         </div>
       </Sheet>
     );
@@ -75,6 +82,11 @@ export function ProgramPickerSheet({ onClose }: { onClose: () => void }) {
       footer={<button className="btn primary block" disabled={!preview} onClick={startPlan}>Start program</button>}>
       <div className="stack">
         <p className="small muted" style={{ margin: 0 }}>{program.description}</p>
+        {program.notes && (
+          <ul className="small" style={{ margin: 0, paddingLeft: 18, color: 'var(--ink-2)' }}>
+            {program.notes.map((n) => <li key={n}>{n}</li>)}
+          </ul>
+        )}
         {program.minWeeks !== program.maxWeeks && (
           <label className="field">
             Length

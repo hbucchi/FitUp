@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import { PROGRAMS, generatePlan, weekStructure, weeklySets, estimateMinutes, weekday } from '../domain/programs';
+import { PROGRAMS, DEFAULT_DAYS, generatePlan, weekStructure, weeklySets, estimateMinutes, weekday, weekOptions, rebuildFrom, hardSets } from '../domain/programs';
 import { SEED_EXERCISES } from '../domain/exercises';
 
 const ids = new Set(SEED_EXERCISES.map((e) => e.id));
 const gen = (id: string, weeks: number) => {
   const p = PROGRAMS.find((x) => x.id === id)!;
-  const days = { 3: [1, 3, 5], 4: [1, 2, 4, 5], 6: [1, 2, 3, 4, 5, 6] }[p.daysPerWeek]!;
+  const days = DEFAULT_DAYS[p.daysPerWeek];
   return generatePlan(p, { weeks, startDate: '2026-11-23', trainingDays: days, id: 'p' });
 };
 
@@ -26,7 +26,7 @@ describe('programs', () => {
         expect(plan.trainingDays).toContain(weekday(s.date));
         for (const e of s.exercises) expect(ids.has(e.exerciseId), e.exerciseId).toBe(true);
         const mins = estimateMinutes(s);
-        expect(mins).toBeGreaterThan(s.phase === 'deload' ? 10 : 30);
+        expect(mins).toBeGreaterThan(s.phase === 'deload' ? 10 : p.category === 'sport' ? 20 : 30);
         expect(mins).toBeLessThan(110);
       }
     });
@@ -71,5 +71,66 @@ describe('programs', () => {
     expect(cardio.length).toBe(16);
     const acc = cardio.filter((c) => c.phase === 'accumulation');
     expect(acc[acc.length - 1].minutes!).toBeGreaterThan(acc[0].minutes!);
+  });
+});
+
+describe('sport programs', () => {
+  test('power work stays explosive (low reps, far from failure), robustness work is included', () => {
+    for (const id of ['boxing', 'football', 'swimming', 'running', 'athletic']) {
+      const { sessions } = gen(id, 8);
+      const all = sessions.flatMap((x) => x.exercises);
+      for (const e of all.filter((x) => x.kind === 'power' && x.exerciseId !== 'ex:sled-push')) { // sled: reps are metres
+        expect(e.repsMax, `${id} ${e.name}`).toBeLessThanOrEqual(15);
+        expect(e.rir).toBeGreaterThanOrEqual(3);
+      }
+      expect(all.some((x) => x.kind === 'prehab'), id).toBe(true);
+    }
+  });
+  test('football includes Nordics and Copenhagen planks every week', () => {
+    const { sessions } = gen('football', 8);
+    for (let w = 1; w <= 8; w++) {
+      const names = sessions.filter((x) => x.week === w).flatMap((x) => x.exercises.map((e) => e.exerciseId));
+      expect(names).toContain('ex:nordic');
+      expect(names).toContain('ex:copenhagen');
+    }
+  });
+  test('conditioning rounds build through a block and drop in the lighter week', () => {
+    const { sessions } = gen('boxing', 8);
+    const rounds = (w: number) => sessions.filter((x) => x.week === w).flatMap((x) => x.exercises).find((e) => e.exerciseId === 'ex:boxing')!.rounds!;
+    expect([rounds(1), rounds(2), rounds(3), rounds(4)]).toEqual([4, 5, 6, 2]);
+  });
+});
+
+describe('week choices (deterministic weeks, chosen by the review)', () => {
+  const p = PROGRAMS.find((x) => x.id === 'upper-lower')!;
+  const base = generatePlan(p, { weeks: 8, startDate: '2026-11-23', trainingDays: [1, 2, 4, 5], id: 'p' });
+
+  test('options for week 3: progress, repeat, lighter, condensed', () => {
+    const opts = weekOptions(p, base.plan, 3);
+    expect(opts.map((o) => o.id)).toEqual(['standard', 'repeat', 'lighter', 'condensed']);
+    const by = Object.fromEntries(opts.map((o) => [o.id, o]));
+    expect(by.lighter.hardSets).toBeLessThan(by.standard.hardSets * 0.7);
+    expect(by.condensed.sessions).toBe(3);
+    expect(by.repeat.hardSets).toBeLessThanOrEqual(by.standard.hardSets);
+  });
+  test('before a scheduled lighter week, the review may skip it', () => {
+    expect(weekOptions(p, base.plan, 4).map((o) => o.id)).toContain('skip-deload');
+  });
+  test('the same choice always produces the same week', () => {
+    const a = rebuildFrom(p, base.plan, weekOptions(p, base.plan, 3)[0].choice);
+    expect(a.sessions.filter((x) => x.week === 3)).toEqual(base.sessions.filter((x) => x.week === 3));
+  });
+  test('repeating a week extends the program by a week and shifts the rest', () => {
+    const repeat = weekOptions(p, base.plan, 3).find((o) => o.id === 'repeat')!;
+    const r = rebuildFrom(p, base.plan, repeat.choice);
+    expect(r.plan.weeks).toBe(9);
+    expect(hardSets(r.sessions.filter((x) => x.week === 3))).toBe(hardSets(base.sessions.filter((x) => x.week === 2)));
+    expect(r.sessions.filter((x) => x.week === 4).map((x) => x.focus)).toEqual(base.sessions.filter((x) => x.week === 3).map((x) => x.focus));
+  });
+  test('skipping the lighter week shortens the program', () => {
+    const skip = weekOptions(p, base.plan, 4).find((o) => o.id === 'skip-deload')!;
+    const r = rebuildFrom(p, base.plan, skip.choice);
+    expect(r.plan.weeks).toBe(7);
+    expect(r.sessions.find((x) => x.week === 4)!.phase).toBe('accumulation');
   });
 });

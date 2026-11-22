@@ -12,6 +12,15 @@ import { NutrientTable } from '../components/NutrientTable';
 import { AddFoodSheet } from './AddFood';
 import { VoiceLogSheet } from './VoiceLog';
 import { ExercisePickerSheet, TrainingLogSheet } from './TrainingLog';
+import { SEED_EXERCISES } from '../../domain/exercises';
+
+const QUICK = [
+  { id: 'ex:walk-brisk', label: 'Walk' },
+  { id: 'ex:run', label: 'Run' },
+  { id: 'ex:cycle', label: 'Cycle' },
+  { id: 'ex:swim', label: 'Swim' },
+  { id: 'ex:hike', label: 'Hike' },
+];
 
 type Modal =
   | { kind: 'add'; meal: Meal }
@@ -20,6 +29,7 @@ type Modal =
   | { kind: 'exercise' }
   | { kind: 'edit-training'; entry: TrainingEntry }
   | { kind: 'session'; id: string }
+  | { kind: 'quick'; exerciseId: string }
   | null;
 
 export function Diary() {
@@ -34,6 +44,9 @@ export function Diary() {
   const training = useMemo(() => allTraining.filter((e) => e.date === date), [allTraining, date]);
   const totals = useMemo(() => sumNutrients(food.map((e) => e.nutrients)), [food]);
   const burned = training.reduce((s, t) => s + t.kcal, 0);
+  // Planned sessions are already part of your targets (activity level). Extra activity — a walk,
+  // a run — adds what it burns above resting.
+  const extra = training.filter((t) => !t.planSessionId).reduce((s, t) => s + (t.netKcal ?? Math.round(t.kcal * 0.85)), 0);
   const nutritionPlan = useStore((s) => s.nutritionPlan);
   const plannedSessions = useStore((s) => s.plannedSessions);
   const targets = useMemo(() => targetsFor({ profile, nutritionPlan, plannedSessions }, date), [profile, nutritionPlan, plannedSessions, date]);
@@ -53,15 +66,20 @@ export function Diary() {
 
       <section className="card" aria-label="Daily summary">
         <div className="row" style={{ gap: 18 }}>
-          <Ring value={totals.kcal ?? 0} target={targets.kcal} burned={burned} />
+          <Ring value={totals.kcal ?? 0} target={targets.kcal} burned={extra} />
           <div className="stack" style={{ gap: 6, flex: 1 }}>
             <div className="row between small"><span className="muted">Target</span><span className="num">{targets.kcal}</span></div>
             <div className="row between small"><span className="muted">Eaten</span><span className="num">{Math.round(totals.kcal ?? 0)}</span></div>
-            <div className="row between small"><span className="muted">Training</span><span className="num">+{burned}</span></div>
+            <div className="row between small"><span className="muted">Extra activity</span><span className="num">+{extra}</span></div>
             <div className="divider" style={{ margin: '2px 0' }} />
             <div className="row between small"><span className="muted">Fiber</span><span className="num">{fmt(totals.fiber)} / {targets.fiber} g</span></div>
           </div>
         </div>
+        {extra > 0 && (
+          <div className="tiny muted" style={{ marginTop: 10 }}>
+            Extra activity adds what it burns above resting ({extra} kcal) to today's budget. Planned sessions are already in your targets.
+          </div>
+        )}
         {targets.dayType && (
           <div className="tiny muted" style={{ marginTop: 10 }}>
             {targets.dayType === 'training' ? 'Training day — a little more carbohydrate to fuel the session.' : 'Rest day targets.'}
@@ -141,9 +159,14 @@ export function Diary() {
         <div className="meal-head">
           <div>
             <h3 className="h-section">Training</h3>
-            {training.length > 0 && <div className="tiny muted num">{burned} kcal burned</div>}
+            {training.length > 0 && <div className="tiny muted num">≈ {burned} kcal burned</div>}
           </div>
           <button className="btn ghost" onClick={() => setModal({ kind: 'exercise' })} aria-label="Log exercise"><IconPlus /></button>
+        </div>
+        <div className="chips" style={{ padding: '0 16px 10px' }}>
+          {QUICK.map((q) => (
+            <button key={q.id} className="chip" onClick={() => setModal({ kind: 'quick', exerciseId: q.id })}>+ {q.label}</button>
+          ))}
         </div>
         {training.length === 0 ? (
           <div className="empty">No training logged.</div>
@@ -182,6 +205,9 @@ export function Diary() {
       {modal?.kind === 'exercise' && <ExercisePickerSheet date={date} onClose={() => setModal(null)} />}
       {modal?.kind === 'edit-training' && <TrainingLogSheet date={date} entry={modal.entry} onClose={() => setModal(null)} />}
       {modal?.kind === 'session' && <SessionSheet sessionId={modal.id} onClose={() => setModal(null)} />}
+      {modal?.kind === 'quick' && (
+        <TrainingLogSheet date={date} exercise={SEED_EXERCISES.find((e) => e.id === modal.exerciseId)} onClose={() => setModal(null)} />
+      )}
     </>
   );
 }

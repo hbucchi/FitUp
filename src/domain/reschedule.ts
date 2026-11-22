@@ -34,11 +34,13 @@ export function planWeek(
   sessions: PlannedSession[],
   today: string,
   trainingDays: number[],
-  opts: { trainedToday?: boolean } = {},
+  opts: { trainedToday?: boolean; lastDay?: string } = {},
 ): ScheduleChange[] {
   const changes: ScheduleChange[] = [];
   const weekStart = startOfWeek(today);
-  const weekEnd = endOfWeek(today);
+  const calendarEnd = endOfWeek(today);
+  // never spill into days that belong to an upcoming (re-planned) week
+  const weekEnd = opts.lastDay && opts.lastDay < calendarEnd ? opts.lastDay : calendarEnd;
 
   // 1. stale misses from earlier weeks
   for (const s of sessions) {
@@ -49,7 +51,7 @@ export function planWeek(
 
   // 2 + 3. open sessions of this week (missed or upcoming), in plan order
   const open = sessions
-    .filter((s) => s.status === 'planned' && s.date >= weekStart && s.date <= weekEnd)
+    .filter((s) => s.status === 'planned' && s.date >= weekStart && s.date <= calendarEnd)
     .sort((a, b) => a.order - b.order);
   const busy = new Set(sessions.filter((s) => s.status === 'done' && s.date >= weekStart && s.date <= weekEnd).map((s) => s.date));
   const firstDay = opts.trainedToday || busy.has(today) ? addDays(today, 1) : today;

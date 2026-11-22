@@ -3,7 +3,7 @@ import { MEALS } from '../domain/types';
 import { scaleNutrients } from '../domain/nutrients';
 import { gramsFor } from '../domain/portions';
 import { INTENSITY, MINUTES_PER_SET, type Intensity } from '../domain/exercises';
-import { exerciseKcal } from '../domain/metrics';
+import { estimateActivity } from '../domain/energy';
 import { normalize, search, type SearchIndex } from '../data/search';
 import { uid, useStore } from '../data/store';
 
@@ -184,15 +184,15 @@ export function executeTool(name: string, input: Input, ctx: AgentContext): unkn
       if (ex.kind === 'aerobic' && !input.duration_min) throw new ToolError('Aerobic exercise needs duration_min.');
       const minutes = Number(input.duration_min) || Math.round((sets?.length ?? 0) * MINUTES_PER_SET);
       const intensity: Intensity = input.intensity in INTENSITY ? input.intensity : 'moderate';
-      const met = ex.met * (ex.kind === 'aerobic' ? INTENSITY[intensity].factor : 1);
+      const distanceKm = input.distance_km != null ? Number(input.distance_km) : undefined;
+      const est = estimateActivity({ exercise: ex, minutes, weightKg: ctx.weightKg, intensity, distanceKm });
       const entry: TrainingEntry = {
         id: uid(), date: ctx.date, time: input.time, exerciseId: ex.id, exerciseName: ex.name, kind: ex.kind,
-        durationMin: minutes, distanceKm: input.distance_km != null ? Number(input.distance_km) : undefined,
-        sets: ex.kind === 'strength' ? sets : undefined, kcal: exerciseKcal(met, ctx.weightKg, minutes),
+        durationMin: minutes, distanceKm, sets: ex.kind === 'strength' ? sets : undefined, kcal: est.kcal, netKcal: est.netKcal,
       };
       store.addTraining(entry);
       ctx.logged.push({ kind: 'training', entry });
-      return { logged: true, entry_id: entry.id, exercise: ex.name, minutes, kcal: entry.kcal };
+      return { logged: true, entry_id: entry.id, exercise: ex.name, minutes, kcal: entry.kcal, kcal_range: `${est.low}-${est.high}`, method: est.method };
     }
     default:
       throw new ToolError(`Unknown tool ${name}`);

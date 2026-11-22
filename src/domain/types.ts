@@ -101,6 +101,8 @@ export interface TrainingEntry {
   distanceKm?: number;
   sets?: StrengthSet[];
   kcal: number;
+  /** energy above resting (what extra activity adds to the food budget) */
+  netKcal?: number;
   notes?: string;
   /** set when this was logged as part of a planned session */
   planSessionId?: string;
@@ -128,7 +130,14 @@ export interface Objective {
 }
 
 // ── Training plans ─────────────────────────────────────────────
-export type SlotKind = 'compound' | 'isolation' | 'cardio';
+/**
+ * compound/isolation — hypertrophy & strength work
+ * power        — jumps, throws, explosive lifts: low reps, full recovery, maximal intent
+ * prehab       — robustness / injury-prevention work (Nordics, Copenhagen, rotator cuff, core)
+ * conditioning — intervals: rounds × work/rest
+ * cardio       — continuous aerobic work in minutes
+ */
+export type SlotKind = 'compound' | 'isolation' | 'power' | 'prehab' | 'conditioning' | 'cardio';
 
 export interface PlannedExercise {
   exerciseId: string;
@@ -140,8 +149,11 @@ export interface PlannedExercise {
   /** repetitions in reserve on the last set */
   rir: number;
   restSec: number;
-  /** cardio only */
+  /** cardio / conditioning: total minutes */
   minutes?: number;
+  /** conditioning: rounds of work/rest */
+  rounds?: number;
+  workSec?: number;
   note?: string;
 }
 
@@ -165,6 +177,18 @@ export interface PlannedSession {
   completedAt?: string;
 }
 
+/** Which pre-designed week runs in a given plan week. The content is deterministic; only the choice varies. */
+export type WeekVariant = 'standard' | 'repeat' | 'lighter' | 'condensed' | 'skip-deload';
+
+export interface WeekChoice {
+  week: number;
+  /** index into the program's week structure whose loading this week uses */
+  step: number;
+  variant: WeekVariant;
+  by: 'plan' | 'rules' | 'assistant' | 'you';
+  reason?: string;
+}
+
 export interface ActivePlan {
   id: string;
   programId: string;
@@ -175,6 +199,9 @@ export interface ActivePlan {
   /** 0 = Sunday … 6 = Saturday */
   trainingDays: number[];
   createdAt: string;
+  /** length of the program's progression (the week structure); `weeks` can grow with repeats */
+  structureWeeks?: number;
+  choices?: WeekChoice[];
 }
 
 // ── Nutrition plan ─────────────────────────────────────────────

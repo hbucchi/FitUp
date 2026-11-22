@@ -17,50 +17,59 @@ const input = (): ReviewInput => ({
 const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body });
 afterEach(() => vi.restoreAllMocks());
 
-test('rules: missed Tuesday is done today; nutrition untouched without data', () => {
+test('rules: missed Tuesday is done today; next week progresses; nutrition untouched without data', () => {
   const r = rulesReview(input());
   expect(r.by).toBe('rules');
   expect(r.sessions).toHaveLength(1);
   expect(r.sessions[0].date).toBe('2026-11-25');
+  expect(r.week!.decision.week).toBe(2);
+  expect(r.week!.decision.chosen.id).toBe('standard');
   expect(r.nutrition).toBeUndefined();
   expect(r.summary).toMatch(/not enough|Only 0/i);
 });
 
-describe('coach (AI) with guardrails', () => {
-  test('reschedules, gets corrected when it breaks a rule, and nutrition limits hold', async () => {
+describe('coach (AI) chooses among pre-designed weeks, with guardrails', () => {
+  test('invalid picks and unsafe changes are refused; a valid choice rebuilds the next week deterministically', async () => {
     const tue = withHistory().find((s) => s.date === '2026-11-24')!;
-    const thu = withHistory().find((s) => s.date === '2026-11-26')!;
     const replies = [
-      // 1) tries to move into the past and onto a busy day, and an unsafe calorie cut
       { stop_reason: 'tool_use', content: [
-        { type: 'tool_use', id: 'a', name: 'reschedule_session', input: { session_id: tue.id, new_date: '2026-11-22', reason: 'x' } },
-        { type: 'tool_use', id: 'b', name: 'reschedule_session', input: { session_id: tue.id, new_date: '2026-11-26', reason: 'x' } },
+        { type: 'tool_use', id: 'a', name: 'choose_week', input: { option_id: 'skip-deload', reason: 'x' } },
+        { type: 'tool_use', id: 'b', name: 'reschedule_session', input: { session_id: tue.id, new_date: '2026-11-22', reason: 'x' } },
         { type: 'tool_use', id: 'c', name: 'set_nutrition_targets', input: { training_day: { kcal: 1200, protein_g: 170, fat_g: 60 }, rest_day: { kcal: 1200, protein_g: 170, fat_g: 60 }, reason: 'x' } },
+        { type: 'tool_use', id: 'd', name: 'modify_session', input: { session_id: tue.id, exercises: [] } },
       ] },
-      // 2) corrects itself
       { stop_reason: 'tool_use', content: [
-        { type: 'tool_use', id: 'd', name: 'reschedule_session', input: { session_id: tue.id, new_date: '2026-11-25', reason: 'Missed yesterday — do it today' } },
-        { type: 'tool_use', id: 'e', name: 'modify_session', input: { session_id: thu.id, exercises: [{ exercise_id: 'ex:incline-db', sets: 3 }, { exercise_id: 'ex:pullup', sets: 3 }], reason: 'Lighter after back-to-back days' } },
+        { type: 'tool_use', id: 'e', name: 'choose_week', input: { option_id: 'repeat', reason: 'A session was missed — consolidate.' } },
+        { type: 'tool_use', id: 'f', name: 'reschedule_session', input: { session_id: tue.id, new_date: '2026-11-25', reason: 'Do it today' } },
       ] },
-      { stop_reason: 'end_turn', content: [{ type: 'text', text: 'Moved Lower A to today and trimmed Upper B.' }] },
+      { stop_reason: 'end_turn', content: [{ type: 'text', text: 'Lower A today; next week repeats this week.' }] },
     ];
     const fetchMock = vi.fn(async () => ok(replies.shift()));
     vi.stubGlobal('fetch', fetchMock);
-    const events: { ok: boolean; error?: string }[] = [];
-    const r = await coachReview({ provider: 'anthropic', apiKey: 'k', model: 'm' }, input(), (e) => e.type === 'tool' && events.push(e));
-    expect(events.filter((e) => !e.ok).map((e) => e.error)).toEqual([
-      expect.stringMatching(/between 2026-11-25 and 2026-11-29/),
-      expect.stringMatching(/already has/),
+    const errors: string[] = [];
+    const r = await coachReview({ provider: 'anthropic', apiKey: 'k', model: 'm' }, input(), (e) => e.type === 'tool' && !e.ok && errors.push(e.error!));
+    expect(errors).toEqual([
+      expect.stringMatching(/Not an available option/),
+      expect.stringMatching(/between 2026-11-25/),
       expect.stringMatching(/at least|at most 300/),
+      expect.stringMatching(/Unknown tool modify_session/),
     ]);
-    expect(r.by).toBe('assistant');
-    expect(r.nutrition).toBeUndefined();
+    expect(r.week!.decision).toMatchObject({ week: 2, by: 'assistant' });
+    expect(r.week!.decision.chosen.id).toBe('repeat');
+    expect(r.week!.plan.weeks).toBe(9);
+    // week 2 now has week 1's loading: same rep ranges and RIR
+    const w = (list: PlannedSession[], n: number) => list.filter((s) => s.week === n).map((s) => s.exercises.map((e) => [e.repsMin, e.rir]));
+    expect(w(r.week!.sessions, 2)).toEqual(w(sessions, 1));
     expect(r.sessions.find((s) => s.id === tue.id)!.date).toBe('2026-11-25');
-    expect(r.sessions.find((s) => s.id === thu.id)!.exercises.map((e) => e.name)).toEqual(['Incline dumbbell press', 'Pull-up']);
-    expect(r.changes).toHaveLength(2);
-    // the model saw the 15-day history and the rule-based baseline
+    expect(r.nutrition).toBeUndefined();
     const sent = JSON.parse((fetchMock.mock.calls[0] as any)[1].body).messages[0].content as string;
-    expect(sent).toContain('"status": "missed"');
+    expect(sent).toContain('"option_id": "condensed"');
     expect(sent).toContain('ruleBasedSuggestion');
+  });
+
+  test('if the coach forgets to choose, the rule-based week applies', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ok({ stop_reason: 'end_turn', content: [{ type: 'text', text: 'All good.' }] })));
+    const r = await coachReview({ provider: 'anthropic', apiKey: 'k', model: 'm' }, input(), () => {});
+    expect(r.week!.decision.by).toBe('rules');
   });
 });

@@ -105,6 +105,12 @@ export function PlanScreen() {
         ) : (
           <>
             <div className="small" style={{ fontWeight: 600 }}>{plan.name}</div>
+            {(() => {
+              const c = plan.choices?.find((x) => x.week === currentWeek);
+              if (!c || c.by === 'plan') return null;
+              const label = { standard: 'progressing as planned', repeat: 'repeating last week', lighter: 'lighter week', condensed: 'condensed week', 'skip-deload': 'lighter week skipped' }[c.variant];
+              return <div className="tiny" style={{ color: 'var(--sea)' }}>This week: {label} — chosen by {c.by === 'assistant' ? 'the coach' : c.by === 'you' ? 'you' : 'the rules'}{c.reason && c.by !== 'you' ? `: ${c.reason}` : ''}</div>;
+            })()}
             <div className="tiny muted" style={{ marginBottom: 10 }}>
               {prettyDate(plan.startDate)} → {prettyDate(plan.endDate)} · {plan.trainingDays.map((d) => DAY[d]).join(', ')}
               {pastCount > 0 && ` · ${doneCount}/${pastCount} sessions done so far`}

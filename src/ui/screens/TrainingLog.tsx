@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Exercise, ExerciseKind, StrengthSet, TrainingEntry } from '../../domain/types';
 import { INTENSITY, MINUTES_PER_SET, SEED_EXERCISES, type Intensity } from '../../domain/exercises';
-import { exerciseKcal } from '../../domain/metrics';
+import { estimateActivity, paceLabel } from '../../domain/energy';
 import { nowHHMM } from '../../domain/dates';
 import { normalize } from '../../data/search';
 import { uid, useStore } from '../../data/store';
@@ -86,15 +86,19 @@ export function TrainingLogSheet({ date, exercise: ex0, entry, onClose, onBack }
   const [notes, setNotes] = useState(entry?.notes ?? '');
 
   const minutes = exercise.kind === 'strength' ? (duration === '' ? Math.round(sets.length * MINUTES_PER_SET) : Number(duration)) : Number(duration) || 0;
-  const met = exercise.met * (exercise.kind === 'aerobic' ? INTENSITY[intensity].factor : 1);
-  const kcal = exerciseKcal(met, profile.weightKg, minutes);
+  const est = estimateActivity({
+    exercise, minutes, weightKg: profile.weightKg, intensity,
+    distanceKm: distance === '' ? undefined : Number(distance),
+  });
+  const kcal = est.kcal;
+  const paceBased = !!est.speedKmh && /equation|cycling at/.test(est.method);
   const setAt = (i: number, patch: Partial<StrengthSet>) => setSets((s) => s.map((x, j) => (j === i ? { ...x, ...patch } : x)));
 
   const submit = () => {
     const t: TrainingEntry = {
       id: entry?.id ?? uid(), date: entry?.date ?? date, time, exerciseId: exercise.id, exerciseName: exercise.name, kind: exercise.kind,
       durationMin: minutes, distanceKm: distance === '' ? undefined : Number(distance),
-      sets: exercise.kind === 'strength' ? sets.filter((s) => s.reps > 0) : undefined, kcal, notes: notes.trim() || undefined,
+      sets: exercise.kind === 'strength' ? sets.filter((s) => s.reps > 0) : undefined, kcal, netKcal: est.netKcal, notes: notes.trim() || undefined,
     };
     if (entry) updateTraining(t);
     else addTraining(t);
@@ -108,7 +112,13 @@ export function TrainingLogSheet({ date, exercise: ex0, entry, onClose, onBack }
       leading={onBack && <button className="icon-btn" aria-label="Back" onClick={onBack}><IconChevron dir="left" /></button>}
       footer={
         <div className="stack" style={{ gap: 8 }}>
-          <div className="row between small"><span className="muted">Estimated energy</span><strong className="num">{kcal} kcal</strong></div>
+          <div className="row between" style={{ alignItems: 'flex-end' }}>
+            <div>
+              <div className="eyebrow">Calories burned</div>
+              <div className="tiny muted">{minutes > 0 ? `likely ${est.low}–${est.high} · ${est.method}` : 'enter a duration'}</div>
+            </div>
+            <div className="big-num num" style={{ fontSize: 30 }}>≈ {kcal}<span className="small muted" style={{ fontFamily: 'var(--font-body)' }}> kcal</span></div>
+          </div>
           <button className="btn primary block" onClick={submit} disabled={minutes <= 0}>{entry ? 'Save' : 'Add to diary'}</button>
           {entry && <button className="btn ghost danger block" onClick={() => { removeTraining(entry.id); onClose(); }}>Remove</button>}
         </div>
@@ -144,16 +154,23 @@ export function TrainingLogSheet({ date, exercise: ex0, entry, onClose, onBack }
               <NumberField label="Duration" suffix="min" value={duration} onChange={setDuration} />
               {exercise.distance && <NumberField label="Distance (optional)" suffix="km" value={distance} onChange={setDistance} />}
             </div>
+            {!paceBased && (
             <div className="field">
               <span>Intensity</span>
               <Segmented value={intensity} onChange={setIntensity} label="Intensity"
                 options={(Object.keys(INTENSITY) as Intensity[]).map((k) => ({ value: k, label: INTENSITY[k].label }))} />
             </div>
+            )}
           </>
         )}
         <label className="field" style={{ maxWidth: 160 }}>Time<input className="input" type="time" value={time} onChange={(e) => setTime(e.target.value)} /></label>
         <label className="field">Notes<textarea className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="How did it feel?" /></label>
-        <p className="tiny muted" style={{ margin: 0 }}>Energy estimate: MET {met.toFixed(1)} × {profile.weightKg} kg × {(minutes / 60).toFixed(2)} h (Compendium of Physical Activities).</p>
+        <p className="tiny muted" style={{ margin: 0 }}>
+          {paceBased
+            ? `From your pace${est.speedKmh ? ` (${est.speedKmh.toFixed(1)} km/h${distance !== '' && exercise.kind === 'aerobic' ? `, ${paceLabel(minutes, Number(distance))}` : ''})` : ''} with the ACSM metabolic equations. `
+            : `MET ${est.met.toFixed(1)} × ${profile.weightKg} kg × ${(minutes / 60).toFixed(2)} h (Compendium of Physical Activities). ${exercise.distance ? 'Add the distance for a pace-based estimate. ' : ''}`}
+          About {est.netKcal} kcal of that is above what you'd burn resting. No estimate is exact; even wrist trackers miss by 25 % or more.
+        </p>
       </div>
     </Sheet>
   );

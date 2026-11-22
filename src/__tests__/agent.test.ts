@@ -39,7 +39,7 @@ describe('tools', () => {
     const s = useStore.getState();
     expect(s.foodEntries[0].nutrients.kcal).toBeCloseTo(750);
     expect(s.customFoods[0].source).toBe('AI estimate');
-    expect(s.trainingEntries[0].kcal).toBe(392);
+    expect(s.trainingEntries[0].kcal).toBe(421); // 5 km in 30 min = 10 km/h → running equation, MET 10.52
   });
 });
 

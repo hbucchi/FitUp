@@ -38,6 +38,62 @@ This is coaching guidance, not medical advice.
 | Creatine monohydrate 3–5 g/day | Strong evidence for strength and training adaptations; safe long-term in healthy people. | Research: [Kreider et al. 2017 (ISSN position stand)](https://pubmed.ncbi.nlm.nih.gov/28615996/) |
 | No planned diet breaks | In resistance-trained adults, intermittent diet breaks didn't improve body composition versus continuous dieting. One-week breaks improved muscular endurance. | Research: [Peos et al. 2021 (ICECAP)](https://pubmed.ncbi.nlm.nih.gov/33587549/) |
 
+## Calories burned by exercise
+
+| Rule in the app | Why | Source |
+|---|---|---|
+| kcal = MET × body weight × hours, using MET values from the Compendium of Physical Activities | The standard reference for the energy cost of activities. The 2024 update lists 1,114 activities, most with measured values. | Research: [Herrmann et al. 2024](https://pubmed.ncbi.nlm.nih.gov/38242596/) |
+| Walking and running with a distance use the ACSM metabolic equations (speed and incline), so pace counts. Cycling with a distance uses the Compendium's speed bands. | Speed-based equations are better than one fixed value per activity, but still carry roughly 8–24 % error, and more outside their intended speed range. | [ACSM equations (summary)](https://www.depts.ttu.edu/ksm/_documents/grad/acsm_comps/6a_Formulas_for_Met_Calucations-Table_7.3.pdf); validation: [cadence-based equations, MSSE 2021](https://pubmed.ncbi.nlm.nih.gov/32555022/) |
+| Results are shown as a range (±20 % for equations, ±30 % for MET tables) | Even wrist-worn devices were off by 27–93 % for energy expenditure in a Stanford study. | Research: [Shcherbina et al. 2017 (Stanford)](https://pubmed.ncbi.nlm.nih.gov/28538708/) |
+| Extra (unplanned) activity adds only its *net* calories (above resting) to the day's food budget. Planned sessions add nothing, because they're already in the activity level behind your targets. | This avoids counting resting energy twice and double-counting planned training. | Energy-balance principle |
+
+## Sport & functional programs
+
+| Program element | Why | Source |
+|---|---|---|
+| **Boxing:** lower-body strength (heavy squats) and power (jumps, light loaded jump squats), rotational power, shoulder and neck robustness, bag and shadow rounds | Lower-limb power was strongly associated with punch impact in national-team boxers. Gains from jump squats and half squats transferred to punch force. Leg fatigue lowers punch force, so heavy leg work stays away from sparring. | Research: [Loturco et al. 2016](https://pubmed.ncbi.nlm.nih.gov/26110348/); [Loturco et al. 2021](https://ro.ecu.edu.au/ecuworkspost2013/11164); [fatigue study](https://pubmed.ncbi.nlm.nih.gov/33858296/) |
+| **Football:** Nordic hamstring curls twice a week | Programs with Nordics roughly halve hamstring injuries (RCTs: risk ratio 0.52). | Research: [van Dyk et al. 2019, *BJSM*](https://bjsm.bmj.com/content/53/21/1362.info) |
+| **Football:** Copenhagen adductor planks | The Adductor Strengthening Programme cut groin problems by 41 % in a cluster-randomised trial. | Research: [Harøy et al. 2019, *BJSM*](https://bjsm.bmj.com/content/53/3/150.info) |
+| **Football:** FIFA 11+ warm-up recommended before team training | It reduces injuries by about 30–40 % in meta-analyses. | Research: [Thorborg et al. 2017, *BJSM*](https://pubmed.ncbi.nlm.nih.gov/28087568/) |
+| **Football / athletic:** jumps, bounds and repeated sprints | Plyometric training improves jumping, sprinting and change of direction in team-sport athletes. Repeated-sprint training is included with modest expectations; evidence for improving repeated-sprint ability itself is thin. | Research: [Ramirez-Campillo et al. (basketball)](https://pmc.ncbi.nlm.nih.gov/articles/PMC9729929/); [handball 2024](https://pubmed.ncbi.nlm.nih.gov/38455436/); [Clemente et al. 2021](https://pmc.ncbi.nlm.nih.gov/articles/PMC7967484/) |
+| **Running:** heavy strength (3–6 reps) and plyometrics, 2×/week for 10+ weeks | Strength training improves running economy. Heavy loads beat plyometrics alone, and effects grow over 10+ weeks. | Research: [Balsalobre-Fernández et al. 2016](https://pubmed.ncbi.nlm.nih.gov/26694507/); [Eihara et al. 2022](https://pmc.ncbi.nlm.nih.gov/articles/PMC9653533/); [Llanos-Lagos et al. 2024](https://pmc.ncbi.nlm.nih.gov/articles/PMC11052887/) |
+| **Swimming:** pulling strength, leg power for starts and turns, light high-rep rotator-cuff work | Swimming plus strength training outperforms swimming alone. Dryland external-rotator work improves rotator strength and balance, a modifiable risk factor for swimmer's shoulder. Evidence for reducing injury incidence itself is limited. | Research: [Crowley et al. 2017](https://link.springer.com/doi/10.1007/s40279-017-0730-2); [Fone & van den Tillaar 2022](https://pmc.ncbi.nlm.nih.gov/articles/PMC8804114/); [swimmer's-shoulder exercise review 2022](https://pubmed.ncbi.nlm.nih.gov/35735465/) |
+| **All sport programs:** gradual progression, neuromuscular work (strength, balance, agility), strength for hamstrings, quads, hips, core, neck and back | General injury-prevention guidance. | [Johns Hopkins Medicine](https://www.hopkinsmedicine.org/health/conditions-and-diseases/sports-injuries/female-athletes-common-sports-injuries-prevention); [5 tips for preventing sports injuries](https://www.hopkinsmedicine.org/health/conditions-and-diseases/sports-injuries/5-tips-for-preventing-sports-related-injuries) |
+| Power work: low reps, full rest (2 min), stop when speed drops, done before fatiguing work | Standard power-training practice: quality of movement and velocity are the stimulus. | Practice |
+
+On university sources: Johns Hopkins Medicine's sports-medicine guidance is used above. I didn't find program-level training research published by Oxford or Cambridge themselves. The strongest sport-specific evidence is in peer-reviewed journals (*BJSM*, *Sports Medicine*, *JSCR*) and governing-body programmes (FIFA 11+), so those are the sources used.
+
+## Choosing the week (deterministic programs, decided by data)
+
+Every week of every program is pre-designed. The review only chooses which week runs next.
+
+**The options:**
+- **Progress:** the next step of the program.
+- **Repeat:** the same loading again.
+- **Lighter:** pull a lighter week forward.
+- **Condensed:** the same progression in fewer, longer sessions.
+- **Skip lighter week:** go straight into the next block.
+
+The same choice always produces the same sessions.
+
+**The signals:**
+- **Adherence:** sessions done ÷ sessions due over 14 days.
+- **Strength trend:** estimated 1-rep max, using Epley: kg × (1 + reps/30), comparing each lift's latest session with the one before.
+- **Weeks since the last lighter week.**
+
+**The rules, applied in order:**
+
+| # | Signal | Choice |
+|---|---|---|
+| 1 | Adherence < 50 % | Condensed |
+| 2 | Adherence < 75 % | Repeat |
+| 3 | ≥ 2 lifts down, and more down than up | Lighter |
+| 4 | 6+ weeks without a lighter week | Lighter |
+| 5 | A lighter week is scheduled, but adherence ≥ 90 % and lifts are climbing | Skip it (lighter weeks don't add muscle by themselves — Coleman 2024) |
+| 6 | Otherwise | Progress |
+
+The AI coach sees the same data and the rule-based pick. It can only choose among these options, and you can overrule it with a tap.
+
 ## The weekly "Update"
 
 **Training.** It looks back over the last 15 days. Misses from earlier weeks are closed rather than chased, because chasing them piles up fatigue and next week covers those muscles anyway.

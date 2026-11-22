@@ -39,6 +39,8 @@ export interface AppState {
   startPlan: (plan: ActivePlan, sessions: PlannedSession[], today: string) => void;
   endPlan: (today: string) => void;
   updateSessions: (sessions: PlannedSession[]) => void;
+  /** apply a week choice: open sessions of this plan from `fromWeek` on are replaced */
+  replacePlanFrom: (plan: ActivePlan, fromWeek: number, sessions: PlannedSession[]) => void;
   addReview: (r: PlanReview) => void;
   resetAll: () => void;
 }
@@ -103,6 +105,14 @@ export const useStore = create<AppState>()(
           const byId = new Map(changed.map((x) => [x.id, x]));
           return { plannedSessions: s.plannedSessions.map((x) => byId.get(x.id) ?? x) };
         }),
+      replacePlanFrom: (plan, fromWeek, sessions) =>
+        set((s) => ({
+          activePlan: plan,
+          plannedSessions: [
+            ...s.plannedSessions.filter((x) => x.planId !== plan.id || x.week < fromWeek || x.status !== 'planned'),
+            ...sessions,
+          ],
+        })),
       addReview: (r) => set((s) => ({ reviews: [r, ...s.reviews].slice(0, 15) })),
       resetAll: () => set({ ...empty }),
     }),
