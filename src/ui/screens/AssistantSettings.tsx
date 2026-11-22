@@ -1,4 +1,4 @@
-import { ANTHROPIC_MODELS, useAssistant, type AgentProvider } from '../../agent/settings';
+import { ANTHROPIC_MODELS, useAssistant, type AgentProvider, OPENAI_MODELS } from '../../agent/settings';
 import type { Transcriber } from '../../agent/transcribe';
 import { Segmented } from '../components/Fields';
 import { t } from '../../i18n';
@@ -30,7 +30,8 @@ export function AssistantSettingsForm({ onDone }: { onDone: () => void }) {
             <input className="input" type="password" autoComplete="off" placeholder={t('sk-…')} value={s.openaiKey} onChange={(e) => s.set({ openaiKey: e.target.value })} />
           </label>
           <label className="field">{t('Model')}
-            <input className="input" value={s.openaiModel} onChange={(e) => s.set({ openaiModel: e.target.value })} />
+            <input className="input" list="openai-models" value={s.openaiModel} onChange={(e) => s.set({ openaiModel: e.target.value })} />
+            <datalist id="openai-models">{OPENAI_MODELS.map((m) => <option key={m} value={m} />)}</datalist>
           </label>
         </>
       )}
@@ -69,6 +70,11 @@ export function AssistantSettingsForm({ onDone }: { onDone: () => void }) {
           {t('Log voice notes automatically')}
         </label>
       )}
+
+      <label className="row small" style={{ gap: 8 }}>
+        <input type="checkbox" checked={s.allowEstimates} onChange={(e) => s.set({ allowEstimates: e.target.checked })} />
+        {t('Allow AI estimates for foods not in the database')}
+      </label>
 
       <p className="tiny muted" style={{ margin: 0 }}>{t('Keys stay in this browser and are never exported.')}</p>
       <button className="btn primary block" onClick={onDone}>{t('Done')}</button>

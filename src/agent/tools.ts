@@ -34,6 +34,10 @@ export interface AgentContext {
   /** the day's check-in as it was before this run (for undo); null = there was none */
   checkInBefore?: CheckIn | null;
   created: Map<string, Food>;
+  /** food ids returned by search_foods in this run — the only ones log_food accepts */
+  seen?: Set<string>;
+  /** offer create_food (an AI estimate) when nothing in the database matches */
+  allowEstimates?: boolean;
 }
 
 const HHMM = { type: 'string', pattern: '^\\d{2}:\\d{2}$', description: '24h time, e.g. "13:30"' };
@@ -42,23 +46,31 @@ export const TOOLS: ToolDef[] = [
   {
     name: 'search_foods',
     description:
-      "Search the user's food catalog (USDA FoodData Central plus the user's own foods). Returns up to 8 matches with nutrients per 100 g and the household portions you can log with. Search with short generic names, e.g. 'chicken breast roasted', 'rice white cooked', 'egg scrambled'.",
-    input_schema: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] },
+      "Search the food database (USDA FoodData Central, the Brazilian TACO table and the user's own foods) for ONE food. Give 1–4 short phrasings of the same food — the user's own words plus the generic database-style names in English and/or Portuguese, e.g. [\"frango grelhado\", \"frango peito grelhado\", \"chicken breast grilled\"]. Returns up to 10 database records with nutrients per 100 g and the household portions you can log with.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        queries: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 4, description: 'Different phrasings of the same single food' },
+      },
+      required: ['queries'],
+    },
   },
   {
     name: 'log_food',
     description:
-      "Write one food entry to the diary. `unit` must be 'g' or EXACTLY one of the portion labels returned by search_foods for that food; quantity is how many of that unit.",
+      "Write one food entry to the diary. food_id MUST be an id returned by search_foods in this conversation — nutrients are taken from that database record. `unit` must be 'g' or EXACTLY one of that food's portion labels; quantity is how many of that unit.",
     input_schema: {
       type: 'object',
       properties: {
+        said: { type: 'string', description: "The user's words for this item, e.g. \"two scrambled eggs\"" },
         food_id: { type: 'string' },
         quantity: { type: 'number', exclusiveMinimum: 0 },
         unit: { type: 'string' },
         meal: { type: 'string', enum: [...MEALS] },
         time: HHMM,
+        confirm_large: { type: 'boolean', description: 'Only when the user really ate more than 1.5 kg / 2500 kcal of this item' },
       },
-      required: ['food_id', 'quantity', 'unit', 'meal'],
+      required: ['said', 'food_id', 'quantity', 'unit', 'meal'],
     },
   },
   {
@@ -151,12 +163,26 @@ function describeFood(f: Food) {
     id: f.id,
     name: f.name,
     source: f.source,
+    category: f.category,
     per_100g: { kcal: r1(f.nutrients.kcal), protein_g: r1(f.nutrients.protein), carbs_g: r1(f.nutrients.carbs), fat_g: r1(f.nutrients.fat) },
     portions: f.portions.slice(0, 8).map((p) => ({ unit: p.label, grams: p.grams })),
   };
 }
 
 export class ToolError extends Error {}
+
+/** Runs every phrasing, keeps each food's best score, and returns the top 10 database records. */
+export function searchMany(ctx: Pick<AgentContext, 'index' | 'boost' | 'created'>, queries: string[], limit = 10): Food[] {
+  const best = new Map<string, { food: Food; score: number }>();
+  for (const q of queries) {
+    for (const h of search(ctx.index, q, { limit, boost: ctx.boost })) {
+      const prev = best.get(h.food.id);
+      if (!prev || h.score > prev.score) best.set(h.food.id, h);
+    }
+    for (const f of ctx.created.values()) if (normalize(f.name).includes(normalize(q))) best.set(f.id, { food: f, score: 99 });
+  }
+  return [...best.values()].sort((a, b) => b.score - a.score).slice(0, limit).map((h) => h.food);
+}
 
 type Input = Record<string, any>; // validated below
 
@@ -166,14 +192,19 @@ export function executeTool(name: string, input: Input, ctx: AgentContext): unkn
 
   switch (name) {
     case 'search_foods': {
-      const hits = search(ctx.index, String(input.query ?? ''), { limit: 8, boost: ctx.boost });
-      const extra = [...ctx.created.values()].filter((f) => normalize(f.name).includes(normalize(String(input.query))));
-      const foods = [...extra, ...hits.map((h) => h.food)].slice(0, 8);
-      return foods.length ? foods.map(describeFood) : { matches: [], hint: 'No matches. Try a shorter or more generic query.' };
+      const queries = (Array.isArray(input.queries) ? input.queries : [input.query]).map((q: unknown) => String(q ?? '').trim()).filter(Boolean).slice(0, 4);
+      if (!queries.length) throw new ToolError('Give at least one query.');
+      const foods = searchMany(ctx, queries);
+      foods.forEach((f) => ctx.seen?.add(f.id));
+      return foods.length
+        ? { matches: foods.map(describeFood) }
+        : { matches: [], hint: 'Nothing in the database. Try shorter, more generic names (e.g. "beans cooked", "feijão cozido").' };
     }
     case 'log_food': {
       const f = food(String(input.food_id));
       if (!f) throw new ToolError(`Unknown food_id "${input.food_id}". Use an id returned by search_foods or create_food.`);
+      if (ctx.seen && !ctx.seen.has(f.id) && !ctx.created.has(f.id))
+        throw new ToolError(`"${f.name}" was not returned by search_foods in this conversation. Search for it first, then log an id from the results.`);
       const unit = String(input.unit);
       if (unit !== 'g' && !f.portions.some((p) => p.label === unit))
         throw new ToolError(`Invalid unit "${unit}" for this food. Valid units: ${['g', ...f.portions.map((p) => p.label)].map((u) => `"${u}"`).join(', ')}`);
@@ -181,15 +212,21 @@ export function executeTool(name: string, input: Input, ctx: AgentContext): unkn
       if (!(quantity > 0)) throw new ToolError('quantity must be > 0');
       const meal = MEALS.includes(input.meal) ? (input.meal as Meal) : 'snack';
       const grams = gramsFor(f, quantity, unit);
+      // guard against unit mix-ups (e.g. 200 "cups" instead of 200 g)
+      const kcal = ((f.nutrients.kcal ?? 0) * grams) / 100;
+      if ((grams > 1500 || kcal > 2500) && !input.confirm_large)
+        throw new ToolError(`That is ${Math.round(grams)} g (${Math.round(kcal)} kcal) of ${f.name} — check quantity and unit. If it really is that much, call again with confirm_large: true.`);
       const entry: FoodEntry = {
         id: uid(), date: ctx.date, time: input.time, meal, foodId: f.id, foodName: f.name,
         quantity, unit, grams, nutrients: scaleNutrients(f.nutrients, grams), via: 'agent',
+        ...(input.said ? { said: String(input.said) } : {}),
       };
       store.addFoodEntries([entry]);
       ctx.logged.push({ kind: 'food', entry });
       return { logged: true, entry_id: entry.id, food: f.name, grams: Math.round(grams), kcal: Math.round(entry.nutrients.kcal ?? 0), meal };
     }
     case 'create_food': {
+      if (!ctx.allowEstimates) throw new ToolError('Estimates are turned off. Do not log this item; list it as not found in your summary.');
       const g = Number(input.serving_grams);
       if (!(g > 0)) throw new ToolError('serving_grams must be > 0');
       const k = 100 / g;
@@ -288,17 +325,20 @@ export function systemPrompt(ctx: AgentContext, now = new Date()): string {
 The user describes (in text or a transcribed voice note) what they ate, how they trained and/or how they feel. Record it in their diary for ${ctx.date}. The current local time is ${time}.
 
 How to work:
-- Split the description into individual foods and exercises. Log each one exactly once.
-- For each food, call search_foods first, then pick the catalog item that best matches the food AND its preparation. If unstated, assume the form normally eaten: cooked meat, fish, rice and pasta; raw fruit; brewed coffee.
-- Amounts: when the user names a household measure (a cup, 2 slices, a large egg), log with the matching portion label from the search result. Otherwise log in grams, converting other units yourself (1 oz = 28.35 g, 1 lb = 453.6 g, ml ≈ g for drinks). If no amount is given, assume one typical portion.
+- Split the description into individual foods and exercises. Log each one exactly once. Mixed items become separate foods ("coffee with milk" → coffee + milk; "arroz e feijão" → arroz + feijão), but keep named dishes whole (moqueca, lasagna, burrito).
+- NEVER log a food from memory. For every food, call search_foods (one food per call; several calls in parallel are fine) with 2–4 phrasings: the user's words, then generic database names in English (USDA style: "chicken breast grilled", "rice white cooked") and/or Portuguese (TACO style: "frango peito grelhado", "arroz tipo 1 cozido").
+- Choose from the returned records only. The record must be the same food AND preparation: chicken breast ≠ chicken liver, cooked ≠ raw ≠ dry/powder, whole milk ≠ milk chocolate. If unstated, assume the form normally eaten: cooked meat, fish, rice, beans and pasta; raw fruit; brewed coffee. Check that the per-100 g values make sense for the food.
+- If no record fits, search again with different, simpler words (at most 3 searches for one food).${ctx.allowEstimates ? `
+- Only when 3 searches found nothing suitable (a restaurant dish or branded product), call create_food with a careful per-serving estimate and say in the summary that it is an estimate.` : `
+- If 3 searches find nothing suitable, do NOT log it and do not estimate it. List it under "Not found in the database" in your summary so the user can scan or add it.`}
+- Amounts: when the user names a household measure (a cup, 2 slices, a large egg, uma concha, 2 colheres de sopa), log with the matching portion label from that record. Otherwise log in grams, converting units yourself (1 oz = 28.35 g, 1 lb = 453.6 g, ml ≈ g for drinks). If no amount is given, assume one typical portion and say so.
+- In log_food, "said" is the user's own words for that item.
 - Meals: ${MEALS.join(', ')}. Use the meal the user names. Otherwise infer it from the time mentioned, or from the current time (05–11 breakfast, 11–15 lunch, 18–22 dinner, otherwise snack). Set "time" when the user states one.
-- Only call create_food when 2 sensible searches find nothing suitable (e.g. a specific restaurant dish or a branded product). Give a careful per-serving estimate.
 - For training, call search_exercises, then log_training with the details given.
 - If they mention sleep, mood, energy, stress or soreness, call log_checkin (scales 1–5; "tired" ≈ energy 2, "great" ≈ 5).
 - If they mention a symptom (headache, cramp, pain, nausea…), call log_symptom once per symptom. Record it; don't diagnose.
 - If a tool returns an error, correct the call and retry.
 - Never ask questions. Make reasonable assumptions instead.
-- The catalog has USDA foods (English names) and TACO foods (Brazilian table, Portuguese names, e.g. "Feijão, carioca, cozido", "Moqueca de peixe"). Search in the language that fits the food; prefer TACO for Brazilian dishes.
 
-Write everything for the user in ${replyLanguage()}. When finished, reply with a short summary: one line per logged item (amount, food, kcal), then any assumptions you made. No preamble.`;
+Write everything for the user in ${replyLanguage()}. When finished, reply with a short summary: one line per logged item (amount, database food name, kcal from the tool result), then assumptions, then anything not found. No preamble.`;
 }

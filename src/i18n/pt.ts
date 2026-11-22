@@ -798,4 +798,6 @@ export const PT: Record<string, string> = {
   '{pct}% of the way to your objective': '{pct}% do caminho até seu objetivo',
   '{pct}% of the way to your objective.': '{pct}% do caminho até seu objetivo.',
   '{who} coach': 'Treinador {who}',
+  'AI estimate': 'Estimativa da IA',
+  'Allow AI estimates for foods not in the database': 'Permitir estimativas da IA para alimentos fora do banco de dados',
 };

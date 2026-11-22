@@ -6,6 +6,8 @@ import { t } from '../i18n';
 export type AgentProvider = 'anthropic' | 'openai';
 
 export interface AssistantSettings {
+  /** Let the assistant create an estimated food when nothing in the database matches. Off: it reports the food as not found. */
+  allowEstimates: boolean;
   provider: AgentProvider;
   anthropicKey: string;
   anthropicModel: string;
@@ -19,6 +21,10 @@ export interface AssistantSettings {
   autoLog: boolean;
   set: (patch: Partial<Omit<AssistantSettings, 'set'>>) => void;
 }
+
+/** OpenAI models suggested in settings (any model id can still be typed). */
+export const OPENAI_MODELS = ['gpt-5.4-mini', 'gpt-5.4', 'gpt-5.1', 'gpt-5-mini'];
+export const DEFAULT_OPENAI_MODEL = 'gpt-5.4-mini';
 
 export const ANTHROPIC_MODELS = [
   { id: 'claude-sonnet-5-5', label: `Claude Sonnet 5.5 — ${t('balanced (recommended)')}` },
@@ -38,7 +44,8 @@ export const useAssistant = create<AssistantSettings>()(
       anthropicKey: '',
       anthropicModel: 'claude-sonnet-5-5',
       openaiKey: '',
-      openaiModel: 'gpt-4.1-mini',
+      openaiModel: DEFAULT_OPENAI_MODEL,
+      allowEstimates: false,
       transcribeModel: 'gpt-4o-mini-transcribe',
       transcriber: 'browser',
       elevenlabsKey: '',
@@ -46,7 +53,19 @@ export const useAssistant = create<AssistantSettings>()(
       autoLog: true,
       set: (patch) => set(patch),
     }),
-    { name: 'micenae:assistant', version: 1 },
+    {
+      name: 'micenae:assistant',
+      version: 2,
+      // v2: move off the old default (gpt-4.1-mini) — the GPT-5 family follows tool instructions far more reliably
+      migrate: (old: any, version) => {
+        const s = { ...(old ?? {}) };
+        if (version < 2) {
+          if (!s.openaiModel || s.openaiModel === 'gpt-4.1-mini' || s.openaiModel === 'gpt-4o-mini') s.openaiModel = DEFAULT_OPENAI_MODEL;
+          if (s.allowEstimates == null) s.allowEstimates = false;
+        }
+        return s;
+      },
+    },
   ),
 );
 

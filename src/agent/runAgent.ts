@@ -83,7 +83,10 @@ async function runOpenAI(cfg: AgentConfig, task: AgentTask, onEvent: (e: AgentEv
   const messages: any[] = [{ role: 'system', content: task.system }, { role: 'user', content: task.user }];
   const tools = task.tools.map((t) => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.input_schema } }));
   for (let step = 0; step < MAX_STEPS; step++) {
-    const res = await post('https://api.openai.com/v1/chat/completions', { authorization: `Bearer ${cfg.apiKey}` }, { model: cfg.model, messages, tools }, signal);
+    const body: Record<string, unknown> = { model: cfg.model, messages, tools };
+    // GPT-5 family / o-series are reasoning models: a little reasoning makes food matching much more reliable
+    if (/^(gpt-5|o\d)/.test(cfg.model)) body.reasoning_effort = 'low';
+    const res = await post('https://api.openai.com/v1/chat/completions', { authorization: `Bearer ${cfg.apiKey}` }, body, signal);
     const msg = res.choices?.[0]?.message;
     if (!msg) throw new Error(t('Empty response from OpenAI.'));
     messages.push(msg);
@@ -115,7 +118,12 @@ export function runAgentTask(cfg: AgentConfig, task: AgentTask, onEvent: (e: Age
 export function runAgent(cfg: AgentConfig, text: string, ctx: AgentContext, onEvent: (e: AgentEvent) => void, signal?: AbortSignal) {
   return runAgentTask(
     cfg,
-    { system: systemPrompt(ctx), tools: TOOLS, user: text, execute: (name, input) => executeTool(name, input, ctx) },
+    {
+      system: systemPrompt(ctx),
+      tools: ctx.allowEstimates ? TOOLS : TOOLS.filter((x) => x.name !== 'create_food'),
+      user: text,
+      execute: (name, input) => executeTool(name, input, ctx),
+    },
     onEvent,
     signal,
   );

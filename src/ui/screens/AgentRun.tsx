@@ -20,6 +20,14 @@ const TOOL_LABEL: Record<string, (i: any) => string> = {
   log_symptom: (i) => t('Logging {what}', { what: t(SYMPTOM_KINDS[i.kind as keyof typeof SYMPTOM_KINDS] ?? 'symptom').toLowerCase() }),
 };
 
+/** Where a logged food's numbers came from. */
+function sourceLabel(src: string) {
+  if (src.startsWith('USDA')) return 'USDA';
+  if (src.startsWith('TACO')) return 'TACO';
+  if (src === 'AI estimate') return t('AI estimate');
+  return t('My foods');
+}
+
 export function AgentRun({ text, date, onDone }: { text: string; date: string; onDone: () => void }) {
   const settings = useAssistant();
   const { ready, index, byId, boost } = useCatalog();
@@ -38,7 +46,7 @@ export function AgentRun({ text, date, onDone }: { text: string; date: string; o
     // wait for the catalog; and StrictMode runs effects twice in dev — never log twice
     if (!ready || started.current) return;
     started.current = true;
-    const ctx: AgentContext = { date, index, byId, boost, exercises, weightKg, logged: [], created: new Map() };
+    const ctx: AgentContext = { date, index, byId, boost, exercises, weightKg, logged: [], created: new Map(), seen: new Set(), allowEstimates: settings.allowEstimates };
     const cfg = settings.provider === 'anthropic'
       ? { provider: 'anthropic' as const, apiKey: settings.anthropicKey.trim(), model: settings.anthropicModel }
       : { provider: 'openai' as const, apiKey: settings.openaiKey.trim(), model: settings.openaiModel };
@@ -95,7 +103,8 @@ export function AgentRun({ text, date, onDone }: { text: string; date: string; o
                     {it.kind === 'food' ? (
                       <>
                         <div className="title">{it.entry.foodName}</div>
-                        <div className="sub">{MEAL_LABEL[it.entry.meal]} · {fmt(it.entry.quantity)} {it.entry.unit === 'g' ? 'g' : `× ${it.entry.unit}`} · {Math.round(it.entry.nutrients.kcal ?? 0)} kcal</div>
+                        {it.entry.said && <div className="tiny muted">“{it.entry.said}”</div>}
+                        <div className="sub">{MEAL_LABEL[it.entry.meal]} · {fmt(it.entry.quantity)} {it.entry.unit === 'g' ? 'g' : `× ${it.entry.unit}`} · {Math.round(it.entry.nutrients.kcal ?? 0)} kcal · {sourceLabel(byId.get(it.entry.foodId)?.source ?? 'AI estimate')}</div>
                       </>
                     ) : it.kind === 'training' ? (
                       <>

@@ -24,15 +24,32 @@ beforeEach(() => {
 
 describe('tools', () => {
   test('search returns ids and portions', () => {
-    const r = executeTool('search_foods', { query: 'banana' }, ctx()) as any[];
+    const r = (executeTool('search_foods', { queries: ['banana'] }, ctx()) as any).matches;
     expect(r[0].id).toBe(banana.id);
     expect(r[0].portions.some((p: any) => p.unit === medium)).toBe(true);
+  });
+  test('only foods returned by search can be logged — no foods from memory', () => {
+    const c = { ...ctx(), seen: new Set<string>() };
+    expect(() => executeTool('log_food', { said: 'a banana', food_id: banana.id, quantity: 1, unit: medium, meal: 'snack' }, c)).toThrow(/not returned by search_foods/);
+    executeTool('search_foods', { queries: ['banana', 'bananas raw'] }, c);
+    executeTool('log_food', { said: 'a banana', food_id: banana.id, quantity: 1, unit: medium, meal: 'snack' }, c);
+    const e = useStore.getState().foodEntries[0];
+    expect(e).toMatchObject({ foodId: banana.id, said: 'a banana', via: 'agent' });
+    // nutrients come from the database record, scaled by grams
+    expect(e.nutrients.kcal).toBeCloseTo((banana.nutrients.kcal! * e.grams) / 100);
+  });
+  test('estimates are off unless allowed', () => {
+    const args = { name: 'Burrito bowl', serving_label: 'bowl', serving_grams: 500, kcal: 750, protein_g: 45, carbs_g: 80, fat_g: 25 };
+    expect(() => executeTool('create_food', args, ctx())).toThrow(/Estimates are turned off/);
+  });
+  test('implausible amounts must be confirmed', () => {
+    expect(() => executeTool('log_food', { said: 'banana', food_id: banana.id, quantity: 200, unit: medium, meal: 'snack' }, ctx())).toThrow(/check quantity and unit/);
   });
   test('invalid unit is a correctable error', () => {
     expect(() => executeTool('log_food', { food_id: banana.id, quantity: 1, unit: 'banana', meal: 'snack' }, ctx())).toThrow(/Valid units/);
   });
   test('create_food then log it; log training', () => {
-    const c = ctx();
+    const c = { ...ctx(), allowEstimates: true };
     const f = executeTool('create_food', { name: 'Chicken burrito bowl', serving_label: 'bowl', serving_grams: 500, kcal: 750, protein_g: 45, carbs_g: 80, fat_g: 25 }, c) as any;
     executeTool('log_food', { food_id: f.id, quantity: 1, unit: 'bowl', meal: 'lunch' }, c);
     executeTool('log_training', { exercise_id: 'ex:run', duration_min: 30, distance_km: 5 }, c);
@@ -99,6 +116,27 @@ describe('agent loop', () => {
     expect(useStore.getState().foodEntries[0].grams).toBe(120);
     const body = JSON.parse((fetchMock.mock.calls[1] as any)[1].body);
     expect(body.messages.at(-1)).toMatchObject({ role: 'tool', tool_call_id: 'c1' });
+  });
+
+  test('OpenAI GPT-5: search first, database ids only, no estimate tool, low reasoning effort', async () => {
+    const replies = [
+      { choices: [{ message: { role: 'assistant', content: null, tool_calls: [{ id: 'c1', type: 'function', function: { name: 'log_food', arguments: JSON.stringify({ said: 'a banana', food_id: banana.id, quantity: 1, unit: medium, meal: 'snack' }) } }] } }] },
+      { choices: [{ message: { role: 'assistant', content: null, tool_calls: [{ id: 'c2', type: 'function', function: { name: 'search_foods', arguments: JSON.stringify({ queries: ['banana', 'bananas raw'] }) } }] } }] },
+      { choices: [{ message: { role: 'assistant', content: null, tool_calls: [{ id: 'c3', type: 'function', function: { name: 'log_food', arguments: JSON.stringify({ said: 'a banana', food_id: banana.id, quantity: 1, unit: medium, meal: 'snack' }) } }] } }] },
+      { choices: [{ message: { role: 'assistant', content: '1 banana' } }] },
+    ];
+    const fetchMock = vi.fn(async () => ok(replies.shift()));
+    vi.stubGlobal('fetch', fetchMock);
+    const events: AgentEvent[] = [];
+    await runAgent({ provider: 'openai', apiKey: 'k', model: 'gpt-5.4-mini' }, 'a banana', { ...ctx(), seen: new Set(), allowEstimates: false }, (e) => events.push(e));
+    const first = JSON.parse((fetchMock.mock.calls[0] as any)[1].body);
+    expect(first.model).toBe('gpt-5.4-mini');
+    expect(first.reasoning_effort).toBe('low');
+    expect(first.tools.map((t: any) => t.function.name)).not.toContain('create_food');
+    expect(first.messages[0].content).toMatch(/NEVER log a food from memory/);
+    // the log before any search is refused, the one after it is accepted
+    expect(events.filter((e) => e.type === 'tool').map((e: any) => e.ok)).toEqual([false, true, true]);
+    expect(useStore.getState().foodEntries).toHaveLength(1);
   });
 
   test('a rejected key surfaces a clear error', async () => {

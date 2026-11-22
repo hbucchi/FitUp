@@ -109,6 +109,8 @@ export interface FoodEntry {
   grams: number;
   nutrients: Nutrients; // already scaled to `grams`
   via?: 'manual' | 'voice' | 'agent';
+  /** the user's own words for this item (voice and assistant logging) */
+  said?: string;
 }
 
 export type ExerciseKind = 'aerobic' | 'strength';

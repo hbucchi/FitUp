@@ -16,7 +16,12 @@ const SYNONYMS: Record<string, string[]> = {
   soda: ['carbonated', 'beverage'],
   coke: ['cola'],
   pb: ['peanut', 'butter'],
-  steak: ['beef', 'steak'],
+  steak: ['steak'],
+  baked: ['baked', 'roasted', 'cooked'],
+  roasted: ['roasted', 'baked', 'cooked'],
+  grilled: ['grilled', 'broiled', 'cooked'],
+  boiled: ['boiled', 'cooked'],
+  poached: ['poached', 'cooked'],
   mince: ['ground'],
   minced: ['ground'],
   hamburger: ['hamburger'],
@@ -46,7 +51,9 @@ const SYNONYMS: Record<string, string[]> = {
   abacate: ['avocado'], amendoim: ['peanut'], castanha: ['nut'], amendoa: ['almond'], acucar: ['sugar'],
   mel: ['honey'], suco: ['juice'], agua: ['water'], cerveja: ['beer'], vinho: ['wine'], cozido: ['cooked', 'boiled'],
   grelhado: ['grilled', 'broiled'], frito: ['fried'], assado: ['roasted', 'baked'], cru: ['raw'], integral: ['whole'],
-  peito: ['breast'], coxa: ['thigh'], file: ['fillet'], desnatado: ['nonfat', 'skim'], semidesnatado: ['reduced', 'lowfat'],
+  peito: ['breast'], coxa: ['thigh'], file: ['fillet'], branco: ['white', 'tipo'], branca: ['white'], mexido: ['scrambled'],
+  moida: ['moido', 'ground'], moido: ['moido', 'ground'], bife: ['steak', 'bovina', 'bife'], macarrao: ['macarrao', 'pasta'],
+  para: ['para', 'brasil'], desnatado: ['nonfat', 'skim'], semidesnatado: ['reduced', 'lowfat'],
 };
 
 const STOP = new Set(['of', 'the', 'a', 'an', 'with', 'and', 'or', 'in', 'some', 'my', 'fresh', 'de', 'do', 'da', 'dos', 'das', 'e', 'o', 'os', 'as', 'em', 'no', 'na']);
@@ -86,7 +93,7 @@ const CATEGORY_PREFIX = new Set([
 ]);
 
 /** Processed / unusual forms people rarely mean when they just say the food's name. */
-const UNCOMMON = /\b(dried|dehydrated|powder|powdered|dry mix|mix|imitation|frozen|canned|babyfood|substitute|fast foods|restaurant|flour|concentrate|stabilized|industrial|commercial formula|freeze-dried|glaze)\b/i;
+const UNCOMMON = /\b(candies|sauce|gravy|puffed|dry(?! heat)|0% moisture|dried|dehydrated|powder|powdered|dry mix|mix|imitation|frozen|canned|babyfood|substitute|fast foods|restaurant|flour|concentrate|stabilized|industrial|commercial formula|freeze-dried|glaze)\b/i;
 
 /** Everyday staples; a small hand-curated popularity prior until we have real usage data. */
 const COMMON: RegExp[] = [
@@ -117,10 +124,15 @@ const COMMON: RegExp[] = [
   /^Avocados, raw, all commercial varieties/,
   /^Oil, olive, extra virgin/,
   /^Beverages, Whey protein powder isolate/,
+  /^Beef, top sirloin, steak, separable lean only, trimmed to 0" fat, all grades, cooked, broiled/,
+  /^Fish, salmon, Atlantic, farmed, cooked, dry heat/,
+  /^Beans, (black|kidney, red|pinto), mature seeds, cooked, boiled, without salt/,
+  /^Lentils, mature seeds, cooked, boiled, without salt/,
+  /^Chickpeas \(garbanzo beans, bengal gram\), mature seeds, cooked, boiled, without salt/,
 ];
 
 /** TACO: processed forms ("pó" = powder) and staples nobody eats raw. */
-const UNCOMMON_PT = /(?<![a-zà-ú])(pó|desidratad[ao]s?|industrializad[ao]s?|conserva|instantâneo|congelad[ao]|xarope|glucose)(?![a-zà-ú])/i;
+const UNCOMMON_PT = /(?<![a-zà-ú])(extrato|pó|desidratad[ao]s?|industrializad[ao]s?|conserva|instantâneo|congelad[ao]|xarope|glucose)(?![a-zà-ú])/i;
 const RAW_PT = /(?<![a-zà-ú])cru[as]?(?![a-zà-ú])/i;
 const COOKED_PT = /(?<![a-zà-ú])(cozid|assad|grelhad|frit|refogad)[ao]s?(?![a-zà-ú])/i;
 /** "Feijão, carioca, cru" → "Feijão, carioca": raw and cooked versions share the name before the last part. */
@@ -143,16 +155,25 @@ const COMMON_PT: RegExp[] = [
   /^Café, infusão 10%/,
   /^Iogurte, natural$/,
   /^Aveia, flocos, crua/,
+  /^Tomate, com semente, cru/,
+  /^Castanha-do-Brasil, crua/,
 ];
 
 /** USDA foods that fill gaps in TACO (it leaves fluid milk blank) — ranked like TACO in Portuguese. */
-const FILLS_PT: RegExp[] = [/^Milk, (whole, 3\.25%|reduced fat, fluid, 2%|lowfat, fluid, 1%|nonfat, fluid)/];
+const FILLS_PT: RegExp[] = [/^Milk, (whole, 3\.25%|reduced fat, fluid, 2%|lowfat, fluid, 1%|nonfat, fluid)/, /^Pasta, cooked, enriched, without added salt/];
+
+/** Meat, fish and staples people eat cooked: the raw entry only wins when "raw"/"cru" is said. */
+const USDA_RAW_MEAT = /^(Beef|Pork|Lamb|Veal|Chicken|Turkey|Fish|Crustaceans|Mollusks|Beans|Lentils|Chickpeas|Rice|Pasta|Quinoa)\b.*\braw\b/i;
+const COOK_FIRST_PT = /^(Macarrão|Arroz|Feijão|Lentilha|Grão-de-bico|Carne|Frango|Peixe|Pescada|Sardinha|Ovo|Porco|Linguiça)/;
+const SAYS_RAW = new Set(['raw', 'cru', 'crua']);
 
 interface Indexed {
   food: Food;
   tokens: string[];
   head: Set<string>; // tokens of the leading descriptive segment(s)
   prior: number;
+  /** a raw version of something normally eaten cooked */
+  rawish: boolean;
   /** TACO, or a USDA food standing in for a TACO gap */
   brazil: boolean;
 }
@@ -173,24 +194,28 @@ export function buildIndex(foods: Food[]): SearchIndex {
       if (COMMON.some((r) => r.test(food.name))) prior += 0.45;
       if (food.source.startsWith('TACO')) {
         if (UNCOMMON_PT.test(food.name)) prior -= 0.2;
-        if (RAW_PT.test(food.name) && cookedToo.has(stemName(food.name))) prior -= 0.15;
         if (COMMON_PT.some((r) => r.test(food.name))) prior += 0.25;
       }
       const brazil = food.source.startsWith('TACO') || FILLS_PT.some((r) => r.test(food.name));
-      return { food, tokens: tokenize(food.name), head: new Set(tokenize(headSegs.join(' '))), prior, brazil };
+      const taco = food.source.startsWith('TACO');
+      const rawish = taco ? RAW_PT.test(food.name) && (cookedToo.has(stemName(food.name)) || COOK_FIRST_PT.test(food.name)) : USDA_RAW_MEAT.test(food.name);
+      return { food, tokens: tokenize(food.name), head: new Set(tokenize(headSegs.join(' '))), prior, brazil, rawish };
     }),
   };
 }
 
 function tokenScore(alts: string[], it: Indexed): number {
   let best = 0;
-  for (const q of alts) {
+  for (const [i, q] of alts.entries()) {
+    // the word itself beats its synonyms: "grilled" prefers "grilled" over "cooked"
+    const weight = i === 0 || q.startsWith(alts[0]) ? 1 : 0.8; // "toast" → "toasted" is the same word
     for (const t of it.tokens) {
       let s = 0;
       if (t === q) s = 1;
       else if (q.length >= 3 && t.startsWith(q)) s = 0.75;
       else if (t.length >= 4 && q.startsWith(t)) s = 0.55;
       if (s > 0 && it.head.has(t)) s += 0.35;
+      s *= weight;
       if (s > best) best = s;
     }
   }
@@ -214,6 +239,7 @@ export function search(index: SearchIndex, query: string, opts: SearchOptions = 
   const { limit = 30, boost = {}, lang = LOCALE } = opts;
   const groups = expandQuery(tokenize(query));
   if (groups.length === 0) return [];
+  const saysRaw = groups.some((g) => g.some((t) => SAYS_RAW.has(t)));
   const hits: SearchHit[] = [];
   for (const it of index.items) {
     let total = 0;
@@ -230,6 +256,7 @@ export function search(index: SearchIndex, query: string, opts: SearchOptions = 
     // prefer short, generic names — "Banana, raw" over "Bananas, dehydrated, or banana powder"
     score -= Math.min(0.3, Math.max(0, it.tokens.length - groups.length) * 0.03);
     score += it.prior;
+    if (it.rawish && !saysRaw) score -= 0.15;
     if (it.food.source === 'USDA Foundation') score += 0.05;
     if (it.food.source === 'Custom') score += 0.25;
     // Brazilian table first in Portuguese, USDA first in English
