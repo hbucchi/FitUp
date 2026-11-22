@@ -28,6 +28,31 @@ export interface CheckIn {
   note?: string;
 }
 
+export const SYMPTOM_KINDS = {
+  headache: 'Headache',
+  cramp: 'Cramp',
+  pain: 'Pain',
+  fatigue: 'Fatigue',
+  nausea: 'Nausea',
+  dizziness: 'Dizziness',
+  digestion: 'Stomach',
+  cold: 'Cold / flu',
+  other: 'Other',
+} as const;
+export type SymptomKind = keyof typeof SYMPTOM_KINDS;
+
+/** Something you felt: a headache, a cramp in the calf, knee pain… Severity 1 (mild) … 5 (severe). */
+export interface Symptom {
+  id: string;
+  date: string;
+  time?: string;
+  kind: SymptomKind;
+  severity: number;
+  bodyPart?: string;
+  note?: string;
+  via?: 'manual' | 'agent';
+}
+
 /** Weigh-ins over time, so we can chart the path later. */
 export interface BodyLog {
   date: string; // YYYY-MM-DD

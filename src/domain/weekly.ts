@@ -1,4 +1,4 @@
-import type { ActivePlan, CheckIn, PlannedSession, TrainingEntry } from './types';
+import type { ActivePlan, CheckIn, PlannedSession, Symptom, TrainingEntry } from './types';
 import { addDays, planChoices, planWeekStart, weekStructure, type WeekOption } from './programs';
 
 /**
@@ -31,7 +31,7 @@ export interface TrainingSignals {
   trends: { name: string; changePct: number }[];
   weeksSinceLighter: number;
   /** last 7 days of check-ins */
-  recovery: { checkIns: number; sleepAvg?: number; energyAvg?: number; sorenessAvg?: number; moodAvg?: number; poor: boolean };
+  recovery: { checkIns: number; sleepAvg?: number; energyAvg?: number; sorenessAvg?: number; moodAvg?: number; severePain?: Symptom; poor: boolean };
 }
 
 const avg = (xs: (number | undefined)[]) => {
@@ -39,19 +39,23 @@ const avg = (xs: (number | undefined)[]) => {
   return v.length ? v.reduce((a, b) => a + b, 0) / v.length : undefined;
 };
 
-export function recoverySignals(checkIns: CheckIn[], today: string): TrainingSignals['recovery'] {
+export function recoverySignals(checkIns: CheckIn[], today: string, symptoms: Symptom[] = []): TrainingSignals['recovery'] {
   const recent = checkIns.filter((c) => c.date >= addDays(today, -7) && c.date <= today);
   const sleepAvg = avg(recent.map((c) => c.sleepHours));
   const energyAvg = avg(recent.map((c) => c.energy));
   const sorenessAvg = avg(recent.map((c) => c.soreness));
   const moodAvg = avg(recent.map((c) => c.mood));
-  const poor = recent.length >= 3 && ((sleepAvg ?? 8) < 6 || (energyAvg ?? 3) <= 2 || (sorenessAvg ?? 3) >= 4);
-  return { checkIns: recent.length, sleepAvg, energyAvg, sorenessAvg, moodAvg, poor };
+  // pain rated 4–5 in the last 5 days counts on its own
+  const severePain = symptoms
+    .filter((s) => s.kind === 'pain' && s.severity >= 4 && s.date >= addDays(today, -5) && s.date <= today)
+    .sort((a, b) => b.date.localeCompare(a.date))[0];
+  const poor = !!severePain || (recent.length >= 3 && ((sleepAvg ?? 8) < 6 || (energyAvg ?? 3) <= 2 || (sorenessAvg ?? 3) >= 4));
+  return { checkIns: recent.length, sleepAvg, energyAvg, sorenessAvg, moodAvg, severePain, poor };
 }
 
 const e1rm = (kg: number, reps: number) => kg * (1 + reps / 30);
 
-export function trainingSignals(plan: ActivePlan, sessions: PlannedSession[], training: TrainingEntry[], today: string, targetWeek: number, checkIns: CheckIn[] = []): TrainingSignals {
+export function trainingSignals(plan: ActivePlan, sessions: PlannedSession[], training: TrainingEntry[], today: string, targetWeek: number, checkIns: CheckIn[] = [], symptoms: Symptom[] = []): TrainingSignals {
   const from = addDays(today, -14);
   const due = sessions.filter((s) => s.date >= from && s.date < today);
   const done = due.filter((s) => s.status === 'done').length;
@@ -94,7 +98,7 @@ export function trainingSignals(plan: ActivePlan, sessions: PlannedSession[], tr
     declined: trends.filter((t) => t.changePct < -2).length,
     trends,
     weeksSinceLighter,
-    recovery: recoverySignals(checkIns, today),
+    recovery: recoverySignals(checkIns, today, symptoms),
   };
 }
 
@@ -118,6 +122,7 @@ export function chooseByRules(options: WeekOption[], s: TrainingSignals): { opti
     return { option: get('repeat')!, reason: `${pct}% of sessions done — repeat before progressing.` };
   if (s.recovery.poor && get('lighter')) {
     const r = s.recovery;
+    if (r.severePain) return { option: get('lighter')!, reason: `${r.severePain.bodyPart ? `${r.severePain.bodyPart} pain` : 'Pain'} rated ${r.severePain.severity}/5 — lighter week.` };
     const why = (r.sleepAvg ?? 8) < 6 ? `sleep averaged ${r.sleepAvg!.toFixed(1)} h` : (r.energyAvg ?? 3) <= 2 ? 'energy has been low' : 'soreness has been high';
     return { option: get('lighter')!, reason: `Recovery is low (${why}) — lighter week.` };
   }

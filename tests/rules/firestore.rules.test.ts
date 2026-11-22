@@ -19,6 +19,7 @@ test('a user can read and write their own diary', async () => {
   await assertSucceeds(setDoc(doc(alice, 'users/alice/foodEntries/e1'), { foodName: 'Egg' }));
   await assertSucceeds(setDoc(doc(alice, 'users/alice/plannedSessions/s1'), { title: 'Upper A' }));
   await assertSucceeds(setDoc(doc(alice, 'users/alice/checkIns/2026-11-22'), { sleepHours: 7.5, mood: 4 }));
+  await assertSucceeds(setDoc(doc(alice, 'users/alice/symptoms/s1'), { kind: 'headache', severity: 3 }));
   await assertSucceeds(getDoc(doc(alice, 'users/alice/foodEntries/e1')));
   await assertSucceeds(deleteDoc(doc(alice, 'users/alice/foodEntries/e1')));
 });

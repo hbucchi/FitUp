@@ -3,7 +3,6 @@ import { LEVELS, ascent } from '../../domain/objective';
 import { fmt } from '../../domain/nutrients';
 import { addDays, estimateMinutes, weekday } from '../../domain/programs';
 import { startOfWeek } from '../../domain/reschedule';
-import { recoverySignals } from '../../domain/weekly';
 import { prettyDate, todayISO } from '../../domain/dates';
 import { useStore } from '../../data/store';
 import { Emblem } from '../components/Emblem';
@@ -83,7 +82,6 @@ export function PlanScreen() {
   const week = [...missed, ...Array.from({ length: 7 }, (_, i) => addDays(today, i))];
   const currentWeek = sessions.find((x) => x.date >= today)?.week ?? plan?.weeks;
   const n = s.nutritionPlan;
-  const recovery = useMemo(() => recoverySignals(s.checkIns, today), [s.checkIns, today]);
   const doneCount = sessions.filter((x) => x.status === 'done').length;
   const pastCount = sessions.filter((x) => x.date < today || x.status === 'done').length;
 
@@ -91,20 +89,6 @@ export function PlanScreen() {
     <>
       <h1 className="h-display" style={{ marginBottom: 14 }}>Plan</h1>
       <AscentCard onEdit={() => setModal('objective')} />
-
-      {recovery.checkIns > 0 && (
-        <section className="card">
-          <div className="card-head">
-            <h2 className="h-section">Recovery</h2>
-            <span className={`badge ${recovery.poor ? '' : 'sea'}`}>{recovery.poor ? 'Low' : '7 days'}</span>
-          </div>
-          <div className="grid3">
-            <div className="stat"><div className="k">Sleep</div><div className="v">{recovery.sleepAvg != null ? `${recovery.sleepAvg.toFixed(1)} h` : '—'}</div></div>
-            <div className="stat"><div className="k">Energy</div><div className="v">{recovery.energyAvg != null ? recovery.energyAvg.toFixed(1) : '—'}</div></div>
-            <div className="stat"><div className="k">Mood</div><div className="v">{recovery.moodAvg != null ? recovery.moodAvg.toFixed(1) : '—'}</div></div>
-          </div>
-        </section>
-      )}
 
       <section className="card">
         <div className="card-head">

@@ -4,7 +4,8 @@ import type { AgentContext, LoggedItem } from '../../agent/tools';
 import { useAssistant } from '../../agent/settings';
 import { useCatalog } from '../../data/useCatalog';
 import { useStore } from '../../data/store';
-import { MEAL_LABEL } from '../../domain/types';
+import { MEAL_LABEL, SYMPTOM_KINDS } from '../../domain/types';
+import { checkInSummary } from './CheckIn';
 import { fmt } from '../../domain/nutrients';
 import { useExercises } from './TrainingLog';
 
@@ -14,6 +15,8 @@ const TOOL_LABEL: Record<string, (i: any) => string> = {
   create_food: (i) => `Creating “${i.name}” (estimate)`,
   search_exercises: (i) => `Searching exercises for “${i.query}”`,
   log_training: () => 'Logging training',
+  log_checkin: () => 'Logging check-in',
+  log_symptom: (i) => `Logging ${String(i.kind ?? 'symptom')}`,
 };
 
 export function AgentRun({ text, date, onDone }: { text: string; date: string; onDone: () => void }) {
@@ -52,8 +55,12 @@ export function AgentRun({ text, date, onDone }: { text: string; date: string; o
   }, [ready]);
 
   const undo = (it: LoggedItem) => {
+    const st = useStore.getState();
     if (it.kind === 'food') removeFoodEntry(it.entry.id);
-    else removeTraining(it.entry.id);
+    else if (it.kind === 'training') removeTraining(it.entry.id);
+    else if (it.kind === 'symptom') st.removeSymptom(it.entry.id);
+    else if (it.previous) st.saveCheckIn(it.previous);
+    else st.removeCheckIn(it.entry.date);
     setUndone((s) => new Set(s).add(it.entry.id));
   };
   const summary = events.find((e): e is Extract<AgentEvent, { type: 'text' }> => e.type === 'text')?.text;
@@ -77,7 +84,7 @@ export function AgentRun({ text, date, onDone }: { text: string; date: string; o
       {error && <div className="error">{error}</div>}
       {logged.length > 0 && (
         <div className="card flush" style={{ marginBottom: 0 }}>
-          <div className="meal-head"><h3 className="h-section">Added to your diary</h3></div>
+          <div className="meal-head"><h3 className="h-section">Logged</h3></div>
           <ul className="list">
             {logged.map((it) => {
               const gone = undone.has(it.entry.id);
@@ -89,10 +96,20 @@ export function AgentRun({ text, date, onDone }: { text: string; date: string; o
                         <div className="title">{it.entry.foodName}</div>
                         <div className="sub">{MEAL_LABEL[it.entry.meal]} · {fmt(it.entry.quantity)} {it.entry.unit === 'g' ? 'g' : `× ${it.entry.unit}`} · {Math.round(it.entry.nutrients.kcal ?? 0)} kcal</div>
                       </>
-                    ) : (
+                    ) : it.kind === 'training' ? (
                       <>
                         <div className="title">{it.entry.exerciseName}</div>
                         <div className="sub">Training · {it.entry.durationMin} min · {it.entry.kcal} kcal</div>
+                      </>
+                    ) : it.kind === 'symptom' ? (
+                      <>
+                        <div className="title">{SYMPTOM_KINDS[it.entry.kind]}{it.entry.bodyPart ? ` · ${it.entry.bodyPart}` : ''}</div>
+                        <div className="sub">Severity {it.entry.severity}/5{it.entry.time ? ` · ${it.entry.time}` : ''}</div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="title">Check-in</div>
+                        <div className="sub">{checkInSummary(it.entry)}</div>
                       </>
                     )}
                   </div>

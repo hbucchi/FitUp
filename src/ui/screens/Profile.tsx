@@ -31,8 +31,8 @@ export function ProfileScreen() {
   const [bf, setBf] = useState<number | ''>(p.bodyFatPct);
 
   const exportData = () => {
-    const { profile, bodyLog, customFoods, customExercises, foodEntries, trainingEntries, objective, activePlan, plannedSessions, nutritionPlan, reviews, checkIns } = s;
-    const blob = new Blob([JSON.stringify({ profile, bodyLog, customFoods, customExercises, foodEntries, trainingEntries, objective, activePlan, plannedSessions, nutritionPlan, reviews, checkIns }, null, 2)], { type: 'application/json' });
+    const { profile, bodyLog, customFoods, customExercises, foodEntries, trainingEntries, objective, activePlan, plannedSessions, nutritionPlan, reviews, checkIns, symptoms } = s;
+    const blob = new Blob([JSON.stringify({ profile, bodyLog, customFoods, customExercises, foodEntries, trainingEntries, objective, activePlan, plannedSessions, nutritionPlan, reviews, checkIns, symptoms }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `micenae-${todayISO()}.json`;

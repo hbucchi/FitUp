@@ -9,7 +9,8 @@ import { Training } from './ui/screens/Training';
 import { ProfileScreen } from './ui/screens/Profile';
 import { PlanScreen } from './ui/screens/Plan';
 import { LevelUp } from './ui/screens/LevelUp';
-import { IconPlan } from './ui/components/IconsExtra';
+import { IconPlan, IconPulse } from './ui/components/IconsExtra';
+import { Wellbeing } from './ui/screens/Wellbeing';
 import { SignIn } from './ui/screens/SignIn';
 import { useAuthUser } from './firebase/auth';
 import { db, PREVIEW } from './firebase/app';
@@ -19,6 +20,7 @@ import { useSession } from './firebase/session';
 const TABS = [
   { id: 'diary', label: 'Diary', icon: IconDiary },
   { id: 'plan', label: 'Plan', icon: IconPlan },
+  { id: 'wellbeing', label: 'Wellbeing', icon: IconPulse },
   { id: 'foods', label: 'Foods', icon: IconFoods },
   { id: 'training', label: 'Training', icon: IconTraining },
   { id: 'profile', label: 'Profile', icon: IconProfile },
@@ -91,6 +93,7 @@ function Main() {
         <main>
           {tab === 'diary' && <Diary />}
           {tab === 'plan' && <PlanScreen />}
+          {tab === 'wellbeing' && <Wellbeing />}
           {tab === 'foods' && <Foods />}
           {tab === 'training' && <Training />}
           {tab === 'profile' && <ProfileScreen />}

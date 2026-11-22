@@ -33,6 +33,14 @@ describe('choosing next week by rules', () => {
     // two check-ins aren't enough to act on
     expect(recoverySignals([{ date: '2026-11-27', sleepHours: 4 }, { date: '2026-11-28', sleepHours: 4 }], '2026-11-28').poor).toBe(false);
   });
+  test('severe pain logged in the last days → lighter week', () => {
+    const r = recoverySignals([], '2026-11-28', [{ id: 'x', date: '2026-11-27', kind: 'pain', severity: 4, bodyPart: 'Knee' }]);
+    expect(r.poor).toBe(true);
+    expect(chooseByRules(opts, sig({ recovery: r })).reason).toMatch(/Knee pain rated 4\/5/);
+    // mild pain or an old episode doesn't count
+    expect(recoverySignals([], '2026-11-28', [{ id: 'y', date: '2026-11-27', kind: 'pain', severity: 2 }]).poor).toBe(false);
+    expect(recoverySignals([], '2026-11-28', [{ id: 'z', date: '2026-11-15', kind: 'pain', severity: 5 }]).poor).toBe(false);
+  });
   test('skip a scheduled lighter week only when everything is going well', () => {
     const before = weekOptions(p, plan, 4);
     expect(chooseByRules(before, sig({ improved: 3 })).option.id).toBe('skip-deload');

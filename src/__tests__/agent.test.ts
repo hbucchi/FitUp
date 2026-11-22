@@ -51,6 +51,15 @@ test('log_checkin merges into the day and validates scales', () => {
   expect(() => executeTool('log_checkin', { mood: 9 }, c)).toThrow(/1 to 5/);
 });
 
+test('log_symptom records one entry per symptom and validates', () => {
+  const c = ctx();
+  executeTool('log_symptom', { kind: 'headache', severity: 3, time: '15:00' }, c);
+  executeTool('log_symptom', { kind: 'cramp', severity: 2, body_part: 'left calf', note: 'during the run' }, c);
+  const s = useStore.getState().symptoms;
+  expect(s.map((x) => [x.kind, x.severity, x.bodyPart ?? null])).toEqual([['headache', 3, null], ['cramp', 2, 'left calf']]);
+  expect(() => executeTool('log_symptom', { kind: 'migraine', severity: 3 }, c)).toThrow(/kind must be/);
+});
+
 describe('agent loop', () => {
   test('Claude: search → bad unit → fix → summary', async () => {
     const replies = [

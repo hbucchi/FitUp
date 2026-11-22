@@ -30,7 +30,7 @@ interface Row {
   spokenUnit?: string;
 }
 
-export function VoiceLogSheet({ date, onClose }: { date: string; onClose: () => void }) {
+export function VoiceLogSheet({ date, onClose, placeholder }: { date: string; onClose: () => void; placeholder?: string }) {
   const speech = useSpeech(navigator.language?.startsWith('en') ? navigator.language : 'en-US');
   const { ready, index, boost } = useCatalog();
   const addFoodEntries = useStore((s) => s.addFoodEntries);
@@ -244,9 +244,9 @@ export function VoiceLogSheet({ date, onClose }: { date: string; onClose: () => 
         <label className="field" style={{ textAlign: 'left' }}>
           {assistantOn ? 'What did you eat or train?' : 'Transcript'}
           <textarea className="input" value={text} onChange={(e) => speech.setTranscript(e.target.value)}
-            placeholder={assistantOn
+            placeholder={placeholder ?? (assistantOn
               ? 'Burrito bowl and a Coke Zero for lunch, then a 5 km run'
-              : '200 g chicken breast and a cup of rice'} />
+              : '200 g chicken breast and a cup of rice')} />
         </label>
         {assistantOn ? (
           <>

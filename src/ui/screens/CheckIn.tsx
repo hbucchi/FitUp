@@ -13,7 +13,7 @@ export const SCALES: { key: ScaleKey; label: string; low: string; high: string }
   { key: 'soreness', label: 'Soreness', low: 'None', high: 'Very sore' },
 ];
 
-function Scale({ label, low, high, value, onChange }: { label: string; low: string; high: string; value?: number; onChange: (v?: number) => void }) {
+export function Scale({ label, low, high, value, onChange }: { label: string; low: string; high: string; value?: number; onChange: (v?: number) => void }) {
   return (
     <div className="field">
       <span>{label}</span>

@@ -12,7 +12,7 @@ service cloud.firestore {
 
       match /{collection}/{docId} {
         allow read, write: if isOwner(uid)
-          && collection in ['foodEntries', 'trainingEntries', 'customFoods', 'customExercises', 'bodyLog', 'plannedSessions', 'checkIns'];
+          && collection in ['foodEntries', 'trainingEntries', 'customFoods', 'customExercises', 'bodyLog', 'plannedSessions', 'checkIns', 'symptoms'];
       }
     }
 

@@ -33,7 +33,7 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
     const planSessions = s.plannedSessions.filter((x) => x.planId === s.activePlan!.id);
     const input: ReviewInput = {
       today: todayISO(), profile: s.profile, objective: s.objective, plan: s.activePlan, sessions: planSessions,
-      training: s.trainingEntries, food: s.foodEntries, bodyLog: s.bodyLog, nutrition: s.nutritionPlan, checkIns: s.checkIns,
+      training: s.trainingEntries, food: s.foodEntries, bodyLog: s.bodyLog, nutrition: s.nutritionPlan, checkIns: s.checkIns, symptoms: s.symptoms,
     };
     const apply = (r: ReviewResult) => {
       before.current = { sessions: r.sessions.map((x) => planSessions.find((o) => o.id === x.id)!).filter(Boolean), nutrition: r.nutrition ? s.nutritionPlan : undefined, plan: s.activePlan!, planSessions };

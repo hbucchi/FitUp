@@ -1,4 +1,5 @@
-import type { Exercise, Food, FoodEntry, Meal, TrainingEntry } from '../domain/types';
+import type { CheckIn, Exercise, Food, FoodEntry, Meal, Symptom, SymptomKind, TrainingEntry } from '../domain/types';
+import { SYMPTOM_KINDS } from '../domain/types';
 import { MEALS } from '../domain/types';
 import { scaleNutrients } from '../domain/nutrients';
 import { gramsFor } from '../domain/portions';
@@ -14,7 +15,11 @@ export interface ToolDef {
   input_schema: Record<string, unknown>;
 }
 
-export type LoggedItem = { kind: 'food'; entry: FoodEntry } | { kind: 'training'; entry: TrainingEntry };
+export type LoggedItem =
+  | { kind: 'food'; entry: FoodEntry }
+  | { kind: 'training'; entry: TrainingEntry }
+  | { kind: 'checkin'; entry: CheckIn & { id: string }; previous?: CheckIn }
+  | { kind: 'symptom'; entry: Symptom };
 
 export interface AgentContext {
   date: string;
@@ -25,6 +30,8 @@ export interface AgentContext {
   weightKg: number;
   /** filled while the agent runs */
   logged: LoggedItem[];
+  /** the day's check-in as it was before this run (for undo); null = there was none */
+  checkInBefore?: CheckIn | null;
   created: Map<string, Food>;
 }
 
@@ -116,6 +123,22 @@ export const TOOLS: ToolDef[] = [
         soreness: { type: 'integer', minimum: 1, maximum: 5 },
         note: { type: 'string' },
       },
+    },
+  },
+  {
+    name: 'log_symptom',
+    description:
+      'Record a symptom the user mentions — headache, cramp, pain, fatigue, nausea, dizziness, stomach upset, cold/flu or other. One call per symptom. Severity 1 (mild) to 5 (severe); estimate from their words if not given.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        kind: { type: 'string', enum: Object.keys(SYMPTOM_KINDS) },
+        severity: { type: 'integer', minimum: 1, maximum: 5 },
+        body_part: { type: 'string', description: 'e.g. "left calf", "lower back" — for cramps and pain' },
+        time: HHMM,
+        note: { type: 'string', description: 'Short context, e.g. "during the run"' },
+      },
+      required: ['kind', 'severity'],
     },
   },
 ];
@@ -231,8 +254,27 @@ export function executeTool(name: string, input: Input, ctx: AgentContext): unkn
         ...(input.soreness != null && { soreness: scale(input.soreness) }),
         ...(input.note && { note: String(input.note) }),
       };
+      // remember the day's check-in as it was before this run, once, so Undo restores it exactly
+      if (ctx.checkInBefore === undefined) ctx.checkInBefore = store.checkIns.find((c) => c.date === ctx.date) ?? null;
       store.saveCheckIn(next);
+      ctx.logged = ctx.logged.filter((l) => l.kind !== 'checkin');
+      ctx.logged.push({ kind: 'checkin', entry: { ...next, id: `checkin-${ctx.date}` }, previous: ctx.checkInBefore ?? undefined });
       return { logged: true, checkin: next };
+    }
+    case 'log_symptom': {
+      const kind = String(input.kind) as SymptomKind;
+      if (!(kind in SYMPTOM_KINDS)) throw new ToolError(`kind must be one of: ${Object.keys(SYMPTOM_KINDS).join(', ')}`);
+      const severity = Math.round(Number(input.severity));
+      if (!(severity >= 1 && severity <= 5)) throw new ToolError('severity goes from 1 to 5.');
+      const symptom: Symptom = {
+        id: uid(), date: ctx.date, kind, severity, via: 'agent',
+        ...(input.time && { time: String(input.time) }),
+        ...(input.body_part && { bodyPart: String(input.body_part) }),
+        ...(input.note && { note: String(input.note) }),
+      };
+      store.saveSymptom(symptom);
+      ctx.logged.push({ kind: 'symptom', entry: symptom });
+      return { logged: true, symptom };
     }
     default:
       throw new ToolError(`Unknown tool ${name}`);
@@ -252,6 +294,7 @@ How to work:
 - Only call create_food when 2 sensible searches find nothing suitable (e.g. a specific restaurant dish or a branded product). Give a careful per-serving estimate.
 - For training, call search_exercises, then log_training with the details given.
 - If they mention sleep, mood, energy, stress or soreness, call log_checkin (scales 1–5; "tired" ≈ energy 2, "great" ≈ 5).
+- If they mention a symptom (headache, cramp, pain, nausea…), call log_symptom once per symptom. Record it; don't diagnose.
 - If a tool returns an error, correct the call and retry.
 - Never ask questions. Make reasonable assumptions instead.
 
