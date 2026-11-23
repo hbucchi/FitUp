@@ -134,6 +134,7 @@ Ranks are earned by training, logged in the diary (`src/domain/xp.ts`):
   - Effort = (load ÷ the exercise's standard working weight for your body weight × reps ÷ 8)^0.75, kept between 0.2 and 2.
   - A challenging hour of ~20 hard sets earns about 2 points.
 - **Daily cap:** 6 points.
+- **Inactivity drain:** after 7 days without any training logged, points drain daily: days 8–21 −1, days 22–42 −2, day 43 onward −3. Any workout resets the clock, and points never go below 0, so a long break can cost ranks.
 - **36 ranks in 7 tiers:**
   - Villager: Villager → Blacksmith
   - Hardman: Hunter → Pankratiast
@@ -141,7 +142,9 @@ Ranks are earned by training, logged in the diary (`src/domain/xp.ts`):
   - General: Commander → King
   - Champion: Athlete of Olympia → Living legend
   - Semi-god: Perseus, Theseus, Achilles, Heracles
-  - God: Hermes, Apollo, Artemis, Ares, Athena, Hades, Poseidon, Zeus
+  - God: Hermes, Dionysus, Apollo, Hephaestus, Ares, Hades, Poseidon, Zeus
+- **Women** climb their own ladder with feminine forms (Shepherdess, Huntress, Queen…; in Portuguese Aldeã, Lavradora, Capitã, Campeã…), the heroines Atalanta, Antiope, Penthesilea and Hippolyta, and the goddesses Hebe, Iris, Nike, Aphrodite, Artemis, Demeter, Athena and Hera.
+- **Pictures:** every rank has a Renaissance-miniature picture, with a men's and a women's set, plus one emblem per tier. They were generated with ElevenLabs (gpt-image-2.5) and live in `public/ranks/` (`m-NN`, `f-NN`, `tier-N`).
 - **Exponential thresholds:** points(n) = A·(rⁿ − 1). The first rank costs 3 points. Zeus is set at the reference athlete's 7-year total: 5 challenging lifting sessions plus 1 hour of aerobic work every day is 17 points/week, so 7 × 52.18 × 17 ≈ 6,209 points. That gives r ≈ 1.185: each rank costs ~18.5 % more than the previous one. A test simulates the 7 years.
 
 ## The objective (body composition)

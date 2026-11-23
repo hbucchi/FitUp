@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { SEED_EXERCISES } from '../domain/exercises';
 import { addDays } from '../domain/programs';
 import type { TrainingEntry } from '../domain/types';
-import { DAILY_CAP, decayFor, RANKS, THRESHOLDS, TIERS, ZEUS_POINTS, setPoints, standing, trainingPoints } from '../domain/xp';
+import { DAILY_CAP, decayFor, rankName, RANKS, THRESHOLDS, TIERS, ZEUS_POINTS, setPoints, standing, trainingPoints } from '../domain/xp';
 
 const ex = (id: string) => SEED_EXERCISES.find((e) => e.id === `ex:${id}`)!;
 const BW = 80;
@@ -44,6 +44,14 @@ describe('ranks', () => {
     expect(RANKS.at(-1)!.name).toBe('Zeus');
     expect(TIERS[5].ranks).toEqual(['Perseus', 'Theseus', 'Achilles', 'Heracles']);
     expect(TIERS[6].ranks.at(-1)).toBe('Zeus');
+  });
+  test('women climb their own ladder: heroines and goddesses, Hera at the top', () => {
+    expect(rankName(0, 'female')).toBe('Villager');
+    expect(rankName(19, 'female')).toBe('Queen');
+    expect(RANKS.slice(24, 28).map((r) => r.nameF)).toEqual(['Atalanta', 'Antiope', 'Penthesilea', 'Hippolyta']);
+    expect(rankName(35, 'female')).toBe('Hera');
+    expect(rankName(35, 'male')).toBe('Zeus');
+    expect(standing(ZEUS_POINTS, 'female').tierName).toBe('Goddess');
   });
   test('the curve is exponential: each rank costs ~18.5 % more than the last', () => {
     const steps = THRESHOLDS.slice(1).map((v, i) => v - THRESHOLDS[i]);

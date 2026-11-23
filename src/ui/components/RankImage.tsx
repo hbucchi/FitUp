@@ -1,18 +1,22 @@
 import { useState } from 'react';
-import { RANKS, TIERS } from '../../domain/xp';
+import type { Sex } from '../../domain/types';
+import { RANKS } from '../../domain/xp';
 import { Emblem } from './Emblem';
 
-/** File name for a rank or tier picture: "Athlete of Olympia" → "athlete-of-olympia". */
-export const slug = (name: string) => name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const pad = (n: number) => String(n).padStart(2, '0');
 
-/** Renaissance miniature for a rank (public/ranks/<slug>.webp), with the laurel emblem as fallback. */
-export function RankImage({ index, size = 64, tierOnly = false }: { index: number; size?: number; tierOnly?: boolean }) {
+/** Path of a rank's Renaissance miniature (women have their own set), or of a tier emblem. */
+export const rankImageSrc = (index: number, sex?: Sex) => `${import.meta.env.BASE_URL}ranks/${sex === 'female' ? 'f' : 'm'}-${pad(index)}.webp`;
+export const tierImageSrc = (tier: number) => `${import.meta.env.BASE_URL}ranks/tier-${tier}.webp`;
+
+/** Round picture for a rank (or a tier with `tier`), falling back to the laurel emblem if it can't load. */
+export function RankImage({ index, sex, size = 64, tier }: { index: number; sex?: Sex; size?: number; tier?: number }) {
   const r = RANKS[index] ?? RANKS[0];
-  const name = tierOnly ? `tier-${TIERS[r.tier].name}` : r.name;
+  const src = tier != null ? tierImageSrc(tier) : rankImageSrc(index, sex);
   const [failed, setFailed] = useState<string | null>(null);
-  if (failed === name) return <Emblem level={r.tier} size={size} />;
+  if (failed === src) return <Emblem level={tier ?? r.tier} size={size} />;
   return (
-    <img src={`${import.meta.env.BASE_URL}ranks/${slug(name)}.webp`} alt="" width={size} height={size} loading="lazy" onError={() => setFailed(name)}
+    <img src={src} alt="" width={size} height={size} loading="lazy" onError={() => setFailed(src)}
       style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flex: 'none', boxShadow: '0 0 0 2px var(--accent-soft)' }} />
   );
 }

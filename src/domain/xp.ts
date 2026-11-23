@@ -1,5 +1,5 @@
-import type { BodyLog, Exercise, TrainingEntry } from './types';
-import { t } from '../i18n';
+import type { BodyLog, Exercise, Sex, TrainingEntry } from './types';
+import { t, tFem } from '../i18n';
 
 /**
  * Training points and ranks — the game layer.
@@ -211,17 +211,32 @@ export function trainingPoints(entries: TrainingEntry[], exercises: Exercise[], 
 
 // ── Ranks ──────────────────────────────────────────────────────────────
 
-export const TIERS: { name: string; blurb: string; ranks: string[] }[] = [
-  { name: 'Villager', blurb: 'Every ascent starts at the foot of the mountain.', ranks: ['Villager', 'Shepherd', 'Farmer', 'Lumberjack', 'Fisherman', 'Blacksmith'] },
-  { name: 'Hardman', blurb: 'The habits are forming. The body has started to answer.', ranks: ['Hunter', 'Stonemason', 'Wrestler', 'Boxer', 'Pankratiast'] },
+/** Rank ladders. `female` holds the women's names where they differ (heroines and goddesses at the top). */
+export const TIERS: { name: string; nameF?: string; blurb: string; ranks: string[]; female?: string[] }[] = [
+  { name: 'Villager', blurb: 'Every ascent starts at the foot of the mountain.', ranks: ['Villager', 'Shepherd', 'Farmer', 'Lumberjack', 'Fisherman', 'Blacksmith'],
+    female: ['Villager', 'Shepherdess', 'Farmer', 'Woodcutter', 'Fisherwoman', 'Blacksmith'] },
+  { name: 'Hardman', nameF: 'Hardwoman', blurb: 'The habits are forming. The body has started to answer.', ranks: ['Hunter', 'Stonemason', 'Wrestler', 'Boxer', 'Pankratiast'],
+    female: ['Huntress', 'Stonemason', 'Wrestler', 'Boxer', 'Pankratiast'] },
   { name: 'Soldier', blurb: 'Disciplined and consistent — training is part of who you are.', ranks: ['Recruit', 'Soldier', 'Hoplite', 'Spartan', 'Captain'] },
-  { name: 'General', blurb: 'Years of work. Others start to follow your lead.', ranks: ['Commander', 'General', 'Polemarch', 'King'] },
+  { name: 'General', blurb: 'Years of work. Others start to follow your lead.', ranks: ['Commander', 'General', 'Polemarch', 'King'],
+    female: ['Commander', 'General', 'Polemarch', 'Queen'] },
   { name: 'Champion', blurb: 'A physique built with intent, tested in the arena.', ranks: ['Athlete of Olympia', 'Olympic victor', 'Champion', 'Living legend'] },
-  { name: 'Semi-god', blurb: 'Heroes of myth — half mortal, half divine.', ranks: ['Perseus', 'Theseus', 'Achilles', 'Heracles'] },
-  { name: 'God', blurb: 'Olympus. Seven years of discipline lead to Zeus.', ranks: ['Hermes', 'Apollo', 'Artemis', 'Ares', 'Athena', 'Hades', 'Poseidon', 'Zeus'] },
+  { name: 'Semi-god', nameF: 'Demigoddess', blurb: 'Heroes of myth — half mortal, half divine.', ranks: ['Perseus', 'Theseus', 'Achilles', 'Heracles'],
+    female: ['Atalanta', 'Antiope', 'Penthesilea', 'Hippolyta'] },
+  { name: 'God', nameF: 'Goddess', blurb: 'Olympus. Seven years of discipline lead to Zeus.', ranks: ['Hermes', 'Dionysus', 'Apollo', 'Hephaestus', 'Ares', 'Hades', 'Poseidon', 'Zeus'],
+    female: ['Hebe', 'Iris', 'Nike', 'Aphrodite', 'Artemis', 'Demeter', 'Athena', 'Hera'] },
 ];
 
-export const RANKS = TIERS.flatMap((tier, ti) => tier.ranks.map((name) => ({ name, tier: ti })));
+export const RANKS = TIERS.flatMap((tier, ti) => tier.ranks.map((name, i) => ({ name, nameF: tier.female?.[i] ?? name, tier: ti })));
+
+/** Translated rank/tier name, feminine in Portuguese for women. */
+export const label = (name: string, sex?: Sex) => (sex === 'female' ? tFem(name) : t(name));
+
+/** Rank and tier names for the user's sex. */
+export const rankName = (index: number, sex?: Sex) => (sex === 'female' ? RANKS[index].nameF : RANKS[index].name);
+export const tierName = (tier: number, sex?: Sex) => (sex === 'female' ? TIERS[tier].nameF ?? TIERS[tier].name : TIERS[tier].name);
+export const tierBlurb = (tier: number, sex?: Sex) =>
+  sex === 'female' && tier === TIERS.length - 1 ? 'Olympus. Seven years of discipline lead to Hera.' : TIERS[tier].blurb;
 
 /** The reference athlete's week: 5 challenging lifting sessions (~20 hard sets) + 1 h aerobic every day. */
 export const REFERENCE_WEEK_POINTS = 5 * 20 * POINTS_PER_REFERENCE_SET + 7 * POINTS_PER_AEROBIC_HOUR;
@@ -258,7 +273,7 @@ export interface Standing {
   toNext: number;
 }
 
-export function standing(points: number): Standing {
+export function standing(points: number, sex?: Sex): Standing {
   let index = 0;
   THRESHOLDS.forEach((at, i) => {
     if (points >= at) index = i;
@@ -267,11 +282,11 @@ export function standing(points: number): Standing {
   const nextAt = THRESHOLDS[index + 1];
   return {
     index,
-    name: t(r.name),
+    name: label(rankName(index, sex), sex),
     tier: r.tier,
-    tierName: t(TIERS[r.tier].name),
+    tierName: label(tierName(r.tier, sex), sex),
     points,
-    next: nextAt != null ? { name: t(RANKS[index + 1].name), at: nextAt } : undefined,
+    next: nextAt != null ? { name: label(rankName(index + 1, sex), sex), at: nextAt } : undefined,
     toNext: nextAt != null ? (points - THRESHOLDS[index]) / (nextAt - THRESHOLDS[index]) : 1,
   };
 }

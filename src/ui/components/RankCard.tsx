@@ -1,5 +1,5 @@
 import { useRank } from '../../data/useRank';
-import { RANKS, THRESHOLDS, TIERS } from '../../domain/xp';
+import { RANKS, THRESHOLDS, TIERS, label, rankName, tierBlurb, tierName } from '../../domain/xp';
 import { t } from '../../i18n';
 import { RankImage } from './RankImage';
 
@@ -8,17 +8,16 @@ const pts = (n: number) => (n < 10 ? n.toFixed(1) : Math.floor(n).toLocaleString
 /** Training rank: points earned in the diary, the current rank and the road to the next. */
 export function RankCard() {
   const r = useRank();
-  const tier = TIERS[r.tier];
   const inTier = RANKS.filter((x) => x.tier === r.tier);
   const firstInTier = RANKS.findIndex((x) => x.tier === r.tier);
   return (
     <section className="card">
       <div className="row" style={{ gap: 14 }}>
-        <RankImage index={r.index} size={72} />
+        <RankImage index={r.index} sex={r.sex} size={72} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="eyebrow">{t('{tier} · rank {n} of {total}', { tier: r.tierName, n: r.index + 1, total: RANKS.length })}</div>
           <div className="h-display" style={{ fontSize: 28 }}>{r.name}</div>
-          <div className="tiny muted">{t(tier.blurb)}</div>
+          <div className="tiny muted">{t(tierBlurb(r.tier, r.sex))}</div>
         </div>
       </div>
       {r.summary.idleDays >= 4 && (
@@ -42,11 +41,18 @@ export function RankCard() {
             return (
               <span key={x.name} className="tiny" title={`${THRESHOLDS[idx]} ${t('points')}`}
                 style={{ color: idx <= r.index ? 'var(--accent)' : 'var(--muted)', fontWeight: idx === r.index ? 700 : 400 }}>
-                {t(x.name)}
+                {label(rankName(idx, r.sex), r.sex)}
               </span>
             );
           })}
         </div>
+      </div>
+      <div className="row" style={{ justifyContent: 'space-between', marginTop: 14 }}>
+        {TIERS.map((_, ti) => (
+          <div key={ti} title={label(tierName(ti, r.sex), r.sex)} style={{ opacity: ti <= r.tier ? 1 : 0.35, filter: ti <= r.tier ? 'none' : 'grayscale(1)', outline: ti === r.tier ? '2px solid var(--accent)' : 'none', borderRadius: '50%' }}>
+            <RankImage index={0} tier={ti} size={36} />
+          </div>
+        ))}
       </div>
       <div className="grid2" style={{ marginTop: 12 }}>
         <div className="stat"><div className="k">{t('Last 7 days')}</div><div className="v num">+{pts(r.week)}</div></div>

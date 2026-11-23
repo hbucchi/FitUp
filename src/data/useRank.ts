@@ -4,8 +4,10 @@ import { useExercises } from '../ui/screens/TrainingLog';
 import { addDays } from '../domain/programs';
 import { todayISO } from '../domain/dates';
 import { standing, trainingPoints, type PointsSummary, type Standing } from '../domain/xp';
+import type { Sex } from '../domain/types';
 
 export interface RankInfo extends Standing {
+  sex?: Sex;
   summary: PointsSummary;
   /** points over the last 7 days, today included */
   week: number;
@@ -16,6 +18,7 @@ export function useRank(): RankInfo {
   const entries = useStore((s) => s.trainingEntries);
   const bodyLog = useStore((s) => s.bodyLog);
   const weight = useStore((s) => s.profile?.weightKg ?? 75);
+  const sex = useStore((s) => s.profile?.sex);
   const exercises = useExercises();
   return useMemo(() => {
     const today = todayISO();
@@ -23,6 +26,6 @@ export function useRank(): RankInfo {
     const from = addDays(today, -6);
     let week = 0;
     for (const [d, p] of summary.byDate) if (d >= from && d <= today) week += p;
-    return { ...standing(summary.total), summary, week };
-  }, [entries, exercises, bodyLog, weight]);
+    return { ...standing(summary.total, sex), summary, week, sex };
+  }, [entries, exercises, bodyLog, weight, sex]);
 }

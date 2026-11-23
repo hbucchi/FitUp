@@ -3,7 +3,7 @@
  * Hashed assets (/assets/*): cache first (they never change).
  * Food catalog and icons: serve cached, refresh in the background.
  * Firebase, AI and font requests are never touched (other origins). */
-const CACHE = 'micenae-v1';
+const CACHE = 'micenae-v2';
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => {
@@ -45,7 +45,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.pathname.startsWith('/data/') || url.pathname.startsWith('/icons/') || url.pathname === '/manifest.webmanifest') {
+  if (url.pathname.startsWith('/data/') || url.pathname.startsWith('/icons/') || url.pathname.startsWith('/ranks/') || url.pathname === '/manifest.webmanifest') {
     event.respondWith(
       caches.open(CACHE).then((c) =>
         c.match(req).then((hit) => {

@@ -57,7 +57,7 @@ export function ProfileScreen() {
         const a = s.objective ? ascent(s.objective, p) : undefined;
         return (
           <a href="#plan" className="card row" style={{ textDecoration: 'none', color: 'inherit', gap: 14 }}>
-            <RankImage index={rank.index} size={52} />
+            <RankImage index={rank.index} sex={rank.sex} size={52} />
             <div style={{ flex: 1 }}>
               <div className="eyebrow">{t('Your rank')} · {rank.tierName}</div>
               <div className="h-section">{rank.name}</div>

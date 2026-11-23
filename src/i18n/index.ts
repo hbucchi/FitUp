@@ -37,6 +37,8 @@ export function t(s: string, vars?: Record<string, string | number>): string {
 }
 
 /** "Upper A — Heavy" → each part translated */
+/** Feminine form where the language needs one: Portuguese "Lavradora" for "Farmer" (key "Farmer (f)"). */
+export const tFem = (s: string) => (LOCALE === 'pt' ? PT[`${s} (f)`] ?? PT[s] ?? s : s);
 export const tTitle = (title: string) => title.split(' — ').map((p) => t(p)).join(' — ');
 
 /** For the AI prompts */
