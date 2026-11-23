@@ -23,7 +23,10 @@ export interface AppState {
   reviews: PlanReview[];
   checkIns: CheckIn[];
   symptoms: Symptom[];
+  /** highest training rank already celebrated (index into RANKS); undefined until first computed */
+  rankSeen?: number;
 
+  setRankSeen: (n: number) => void;
   setProfile: (p: Profile) => void;
   logBody: (b: BodyLog) => void;
   saveCustomFood: (f: Food) => void;
@@ -64,6 +67,7 @@ const empty = {
   trainingEntries: [],
   recentFoodIds: [],
   objective: undefined,
+  rankSeen: undefined,
   activePlan: undefined,
   nutritionPlan: undefined,
   plannedSessions: [],
@@ -100,6 +104,7 @@ export const useStore = create<AppState>()(
       saveCustomExercise: (e) =>
         set((s) => ({ customExercises: [e, ...s.customExercises.filter((x) => x.id !== e.id)] })),
       setObjective: (objective) => set({ objective }),
+      setRankSeen: (rankSeen) => set({ rankSeen }),
       setNutritionPlan: (nutritionPlan) => set({ nutritionPlan }),
       startPlan: (plan, sessions, today) =>
         set((s) => ({

@@ -4,7 +4,7 @@ import { applyChanges, endOfWeek, planWeek, startOfWeek, type ScheduleChange } f
 import { kcalFloor, reviewNutrition } from '../domain/nutritionPlan';
 import { chooseByRules, targetWeek, trainingSignals, type TrainingSignals } from '../domain/weekly';
 import { bodyMetrics } from '../domain/metrics';
-import { ascent, LEVELS } from '../domain/objective';
+import { ascent } from '../domain/objective';
 import { runAgentTask, type AgentConfig, type AgentEvent } from './runAgent';
 import { ToolError, type ToolDef } from './tools';
 import { replyLanguage, t, tTitle } from '../i18n';
@@ -133,7 +133,7 @@ export function coachContext(input: ReviewInput, base: ReturnType<typeof baselin
       experience: input.objective?.experience,
       phase: input.nutrition?.phase ?? input.profile.goal,
     },
-    objective: input.objective && a && { progressPct: Math.round(a.progress * 100), level: LEVELS[a.level].name, targetBodyFatPct: input.objective.target.bodyFatPct },
+    objective: input.objective && a && { progressPct: Math.round(a.progress * 100), targetBodyFatPct: input.objective.target.bodyFatPct },
     program: { name: input.plan.name, weeks: input.plan.weeks, trainingDays: input.plan.trainingDays.map((d) => DAY[d]) },
     last15Days: sorted
       .filter((s) => s.date >= from15 && s.date < today)

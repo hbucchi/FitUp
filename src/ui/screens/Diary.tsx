@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useRank } from '../../data/useRank';
 import type { FoodEntry, Meal, TrainingEntry } from '../../domain/types';
 import { MEALS, MEAL_LABEL } from '../../domain/types';
 import { fmt, sumNutrients } from '../../domain/nutrients';
@@ -36,6 +37,7 @@ type Modal =
   | null;
 
 export function Diary() {
+  const rank = useRank();
   const profile = useStore((s) => s.profile)!;
   const allFood = useStore((s) => s.foodEntries);
   const allTraining = useStore((s) => s.trainingEntries);
@@ -167,7 +169,11 @@ export function Diary() {
         <div className="meal-head">
           <div>
             <h3 className="h-section">{t('Training')}</h3>
-            {training.length > 0 && <div className="tiny muted num">{t('≈ {n} kcal burned', { n: burned })}</div>}
+            {training.length > 0 && (
+              <div className="tiny muted num">
+                {t('≈ {n} kcal burned', { n: burned })} · <span style={{ color: 'var(--accent)' }}>+{t('{n} points', { n: (rank.summary.byDate.get(date) ?? 0).toFixed(1) })}</span>
+              </div>
+            )}
           </div>
           <button className="btn ghost" onClick={() => setModal({ kind: 'exercise' })} aria-label={t('Log exercise')}><IconPlus /></button>
         </div>

@@ -170,7 +170,8 @@ export interface Objective {
   target: { bodyFatPct: number; ffmiNorm: number; leanKg: number; fatKg: number; weightKg: number };
   targetDate?: string;
   /** highest level index the user has already been shown (for level-up moments) */
-  levelSeen: number;
+  /** legacy (ranks moved to training points) */
+  levelSeen?: number;
 }
 
 // ── Training plans ─────────────────────────────────────────────

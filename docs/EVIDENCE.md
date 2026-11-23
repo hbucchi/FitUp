@@ -124,9 +124,29 @@ Misses from the current week move to the next free day, preferring your training
 
 With an AI key, the coach sees all of this as a baseline. Its own changes are capped at ±300 kcal, protein must stay between 1.6 g/kg body weight and 3.1 g/kg lean mass, and fat must stay ≥0.6 g/kg and ≥20 % of calories.
 
-## Ranks (Villager → God)
+## Ranks (Villager → Zeus): training points
 
-Progress = (lean mass gained + fat lost) ÷ (lean mass needed + fat to lose), measured from your body when you set the objective. Each part is capped at what was needed. The ranks start at Villager (0 %) and move through Hardman (15 %), Soldier (35 %), General (55 %), Champion (75 %) and Semi-god (90 %) to God, at 100 %, when the objective is reached.
+Ranks are earned by training, logged in the diary (`src/domain/xp.ts`):
+
+- **Aerobic:** 1 point per hour.
+- **Weight training:** each set scores 0.1 × difficulty × effort.
+  - Difficulty runs from 1.3 (squat, deadlift, clean) through 1.0 (bench, rows, pull-ups) and 0.7 (isolation) down to 0.4–0.5 (core and prehab).
+  - Effort = (load ÷ the exercise's standard working weight for your body weight × reps ÷ 8)^0.75, kept between 0.2 and 2.
+  - A challenging hour of ~20 hard sets earns about 2 points.
+- **Daily cap:** 6 points.
+- **36 ranks in 7 tiers:**
+  - Villager: Villager → Blacksmith
+  - Hardman: Hunter → Pankratiast
+  - Soldier: Recruit → Captain
+  - General: Commander → King
+  - Champion: Athlete of Olympia → Living legend
+  - Semi-god: Perseus, Theseus, Achilles, Heracles
+  - God: Hermes, Apollo, Artemis, Ares, Athena, Hades, Poseidon, Zeus
+- **Exponential thresholds:** points(n) = A·(rⁿ − 1). The first rank costs 3 points. Zeus is set at the reference athlete's 7-year total: 5 challenging lifting sessions plus 1 hour of aerobic work every day is 17 points/week, so 7 × 52.18 × 17 ≈ 6,209 points. That gives r ≈ 1.185: each rank costs ~18.5 % more than the previous one. A test simulates the 7 years.
+
+## The objective (body composition)
+
+Progress = (lean mass gained + fat lost) ÷ (lean mass needed + fat to lose), measured from your body when you set the objective. Each part is capped at what was needed.
 
 The default objective is a normalised FFMI of 22.5 at 11 % body fat for men, or 18.5 at 19 % for women. FFMI (fat-free mass index) is lean mass ÷ height², normalised for height (Kouri et al., 1995). These targets sit near the upper end of what is reachable without drugs.
 

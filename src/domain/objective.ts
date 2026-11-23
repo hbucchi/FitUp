@@ -1,34 +1,15 @@
 import type { BodySnapshot, Experience, Goal, Objective, Profile, Sex } from './types';
 import { IDEAL, bodyMetrics } from './metrics';
-import { t } from '../i18n';
 
 /**
- * The ascent: from Villager to God.
+ * Progress toward the physique objective (ranks are earned by training — see xp.ts).
  *
  * Progress is measured in kilograms of body-composition change, not in points:
  *   needed   = lean mass to build + fat to lose        (fixed when the objective is set)
  *   achieved = lean gained so far + fat lost so far     (each capped at what was needed)
  *   progress = achieved / needed
- * so a level means the same thing for everyone: a share of *your* road travelled.
+ * so the percentage means the same thing for everyone: a share of *your* road travelled.
  */
-
-export const LEVELS = [
-  { name: t('Villager'), at: 0, blurb: t('Every ascent starts at the foot of the mountain.') },
-  { name: t('Hardman'), at: 0.15, blurb: t('The habits are forming. The body has started to answer.') },
-  { name: t('Soldier'), at: 0.35, blurb: t('Disciplined and consistent — a third of the road behind you.') },
-  { name: t('General'), at: 0.55, blurb: t('Past halfway. Others start to notice.') },
-  { name: t('Champion'), at: 0.75, blurb: t('A physique built with intent.') },
-  { name: t('Semi-god'), at: 0.9, blurb: t('Within reach of the ideal.') },
-  { name: t('God'), at: 1, blurb: t('Objective achieved — the classical physique.') },
-] as const;
-
-export function levelIndex(progress: number): number {
-  let i = 0;
-  LEVELS.forEach((l, idx) => {
-    if (progress >= l.at - 1e-9) i = idx;
-  });
-  return i;
-}
 
 export function snapshot(p: Pick<Profile, 'weightKg' | 'bodyFatPct'>, date: string): BodySnapshot {
   const leanKg = p.weightKg * (1 - p.bodyFatPct / 100);
@@ -54,10 +35,6 @@ export function defaultTarget(p: Profile) {
 
 export interface Ascent {
   progress: number;
-  level: number;
-  next?: (typeof LEVELS)[number];
-  /** 0..1 progress within the current level band */
-  toNext: number;
   needLeanKg: number;
   needFatKg: number;
   gainedLeanKg: number;
@@ -74,11 +51,8 @@ export function ascent(o: Objective, now: Pick<Profile, 'weightKg' | 'bodyFatPct
   const lostFatKg = Math.min(needFatKg, Math.max(0, o.start.fatKg - cur.fatKg));
   const need = needLeanKg + needFatKg;
   const progress = need <= 0.05 ? 1 : Math.min(1, (gainedLeanKg + lostFatKg) / need);
-  const level = levelIndex(progress);
-  const next = LEVELS[level + 1];
-  const toNext = next ? (progress - LEVELS[level].at) / (next.at - LEVELS[level].at) : 1;
   return {
-    progress, level, next, toNext, needLeanKg, needFatKg, gainedLeanKg, lostFatKg,
+    progress, needLeanKg, needFatKg, gainedLeanKg, lostFatKg,
     remainingLeanKg: needLeanKg - gainedLeanKg, remainingFatKg: needFatKg - lostFatKg,
   };
 }

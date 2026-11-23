@@ -5,6 +5,7 @@ import { PT } from '../i18n/pt';
 import { SEED_EXERCISES } from '../domain/exercises';
 import { PROGRAMS } from '../domain/programs';
 import { SYMPTOM_KINDS } from '../domain/types';
+import { TIERS } from '../domain/xp';
 
 function sources(dir: string, out: string[] = []): string[] {
   for (const f of readdirSync(dir)) {
@@ -31,6 +32,7 @@ test('exercise, program and symptom labels are translated', () => {
     ...SEED_EXERCISES.flatMap((e) => [e.name, e.group, e.equipment].filter((x): x is string => !!x)),
     ...PROGRAMS.flatMap((p) => [p.name, p.tagline, p.description, ...(p.notes ?? [])]),
     ...Object.values(SYMPTOM_KINDS),
+    ...TIERS.flatMap((x) => [x.name, x.blurb, ...x.ranks]),
   ];
   expect(keys.filter((k) => !(k in PT))).toEqual([]);
 });

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Experience } from '../../domain/types';
 import { IDEAL, bodyMetrics, GOAL_LABEL } from '../../domain/metrics';
-import { ascent, estimateTimeline, makeTarget, recommendPhase, snapshot } from '../../domain/objective';
+import { estimateTimeline, makeTarget, recommendPhase, snapshot } from '../../domain/objective';
 import { buildNutritionPlan } from '../../domain/nutritionPlan';
 import { programById } from '../../domain/programs';
 import { fmt } from '../../domain/nutrients';
@@ -31,8 +31,7 @@ export function ObjectiveSheet({ onClose, onDone }: { onClose: () => void; onDon
   const save = () => {
     if (!target) return;
     const today = todayISO();
-    const objective = { createdAt: new Date().toISOString(), experience, start: snapshot(p, today), target, levelSeen: 0 };
-    s.setObjective({ ...objective, levelSeen: ascent(objective, p).level });
+    s.setObjective({ createdAt: new Date().toISOString(), experience, start: snapshot(p, today), target });
     s.setProfile({ ...p, goal: phase });
     const days = s.activePlan?.trainingDays.length ?? programById('upper-lower')!.daysPerWeek;
     s.setNutritionPlan(buildNutritionPlan({ ...p, goal: phase }, { phase, trainingDaysPerWeek: days, experience }));

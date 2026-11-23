@@ -28,7 +28,7 @@ import { useStore, type AppState } from '../data/store';
 
 export const COLLECTIONS = ['foodEntries', 'trainingEntries', 'customFoods', 'customExercises', 'bodyLog', 'plannedSessions', 'checkIns', 'symptoms'] as const;
 /** Small per-user documents stored as fields of users/{uid}. */
-export const USER_FIELDS = ['profile', 'recentFoodIds', 'objective', 'activePlan', 'nutritionPlan', 'reviews'] as const;
+export const USER_FIELDS = ['profile', 'recentFoodIds', 'objective', 'activePlan', 'nutritionPlan', 'reviews', 'rankSeen'] as const;
 type CollectionKey = (typeof COLLECTIONS)[number];
 type Item = { id?: string; date?: string };
 

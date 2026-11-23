@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
-import { LEVELS, ascent } from '../../domain/objective';
+import { ascent } from '../../domain/objective';
+import { RankCard } from '../components/RankCard';
 import { fmt } from '../../domain/nutrients';
 import { addDays, estimateMinutes, weekday } from '../../domain/programs';
 import { startOfWeek } from '../../domain/reschedule';
 import { prettyDate, todayISO } from '../../domain/dates';
 import { useStore } from '../../data/store';
-import { Emblem } from '../components/Emblem';
 import { ObjectiveSheet } from './ObjectiveSheet';
 import { ProgramPickerSheet } from './ProgramPicker';
 import { ReviewSheet } from './ReviewSheet';
@@ -20,53 +20,31 @@ export function AscentCard({ onEdit }: { onEdit: () => void }) {
   if (!objective) {
     return (
       <section className="card">
-        <div className="row" style={{ gap: 14 }}>
-          <Emblem level={0} size={56} />
-          <div style={{ flex: 1 }}>
-            <div className="eyebrow">{t('Villager')}</div>
-            <div className="h-section">{t('Set your objective')}</div>
-            <div className="small muted">{t('Pick the physique you\'re building toward.')}</div>
-          </div>
-        </div>
+        <div className="eyebrow">{t('Your objective')}</div>
+        <div className="h-section">{t('Set your objective')}</div>
+        <div className="small muted">{t('Pick the physique you\'re building toward.')}</div>
         <button className="btn primary block" style={{ marginTop: 12 }} onClick={onEdit}>{t('Set objective')}</button>
       </section>
     );
   }
   const a = ascent(objective, profile);
-  const lvl = LEVELS[a.level];
   return (
     <section className="card">
-      <div className="row" style={{ gap: 14 }}>
-        <Emblem level={a.level} size={64} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="eyebrow">{t('Rank {n} of {total}', { n: a.level + 1, total: LEVELS.length })}</div>
-          <div className="h-display" style={{ fontSize: 28 }}>{lvl.name}</div>
-        </div>
+      <div className="row between">
+        <div className="eyebrow">{t('Your objective')}</div>
+        <button className="btn ghost" onClick={onEdit}>{t('Edit')}</button>
       </div>
-      <div style={{ marginTop: 14 }}>
-        <div className="row between tiny muted" style={{ marginBottom: 4 }}>
-          <span>{Math.round(a.progress * 100)}%</span>
-          {a.next && <span>{t('Next: {name}', { name: a.next.name })}</span>}
-        </div>
-        <div className="bar" style={{ height: 10 }}>
-          <span style={{ width: `${a.progress * 100}%`, background: 'linear-gradient(90deg, var(--sea), var(--accent))' }} />
-        </div>
-        <div className="row" style={{ justifyContent: 'space-between', marginTop: 4 }}>
-          {LEVELS.map((l, i) => (
-            <span key={l.name} className="tiny" style={{ color: i <= a.level ? 'var(--accent)' : 'var(--muted)', fontWeight: i === a.level ? 700 : 400 }} title={l.name}>
-              {['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'][i]}
-            </span>
-          ))}
-        </div>
+      <div className="row between tiny muted" style={{ marginBottom: 4 }}>
+        <span>{t('{pct}% of the way to your objective', { pct: Math.round(a.progress * 100) })}</span>
+      </div>
+      <div className="bar" style={{ height: 10 }}>
+        <span style={{ width: `${a.progress * 100}%`, background: 'linear-gradient(90deg, var(--sea), var(--accent))' }} />
       </div>
       <div className="grid2" style={{ marginTop: 12 }}>
         <div className="stat"><div className="k">{t('Lean mass to build')}</div><div className="v">{fmt(a.remainingLeanKg, 1)} kg</div></div>
         <div className="stat"><div className="k">{t('Fat to lose')}</div><div className="v">{fmt(a.remainingFatKg, 1)} kg</div></div>
       </div>
-      <div className="row between" style={{ marginTop: 10 }}>
-        <span className="tiny muted">{t('Target {w} kg · {bf}% fat', { w: fmt(objective.target.weightKg, 1), bf: objective.target.bodyFatPct })}</span>
-        <button className="btn ghost" onClick={onEdit}>{t('Edit')}</button>
-      </div>
+      <div className="tiny muted" style={{ marginTop: 10 }}>{t('Target {w} kg · {bf}% fat', { w: fmt(objective.target.weightKg, 1), bf: objective.target.bodyFatPct })}</div>
     </section>
   );
 }
@@ -89,6 +67,7 @@ export function PlanScreen() {
   return (
     <>
       <h1 className="h-display" style={{ marginBottom: 14 }}>{t('Plan')}</h1>
+      <RankCard />
       <AscentCard onEdit={() => setModal('objective')} />
 
       <section className="card">

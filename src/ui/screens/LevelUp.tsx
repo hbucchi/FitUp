@@ -1,26 +1,30 @@
+import { useEffect } from 'react';
 import { useStore } from '../../data/store';
-import { LEVELS, ascent } from '../../domain/objective';
+import { useRank } from '../../data/useRank';
+import { TIERS } from '../../domain/xp';
 import { Emblem } from '../components/Emblem';
 import { t } from '../../i18n';
 
-/** Shown once when a weigh-in moves you into a new rank. */
+/** Shown once when training points move you into a new rank. */
 export function LevelUp() {
   const profile = useStore((s) => s.profile);
-  const objective = useStore((s) => s.objective);
-  const setObjective = useStore((s) => s.setObjective);
-  if (!profile || !objective) return null;
-  const a = ascent(objective, profile);
-  if (a.level <= objective.levelSeen) return null;
-  const lvl = LEVELS[a.level];
-  const close = () => setObjective({ ...objective, levelSeen: a.level });
+  const seen = useStore((s) => s.rankSeen);
+  const setSeen = useStore((s) => s.setRankSeen);
+  const r = useRank();
+  // first run (or history imported from another device): start from where you are, no fanfare
+  useEffect(() => {
+    if (profile && seen == null) setSeen(r.index);
+  }, [profile, seen, r.index, setSeen]);
+  if (!profile || seen == null || r.index <= seen) return null;
+  const close = () => setSeen(r.index);
   return (
     <div className="sheet-backdrop" style={{ alignItems: 'center' }} onMouseDown={(e) => e.target === e.currentTarget && close()}>
-      <div className="card" role="dialog" aria-modal="true" aria-label={t('New rank: {name}', { name: lvl.name })} style={{ maxWidth: 340, width: 'calc(100% - 32px)', textAlign: 'center', padding: 28 }}>
-        <div style={{ display: 'grid', placeItems: 'center', marginBottom: 8 }}><Emblem level={a.level} size={96} /></div>
-        <div className="eyebrow">{t('You have risen')}</div>
-        <div className="h-display" style={{ fontSize: 34, margin: '4px 0 8px' }}>{lvl.name}</div>
-        <p className="small muted" style={{ marginTop: 0 }}>{lvl.blurb}</p>
-        <p className="small">{t('{pct}% of the way to your objective.', { pct: Math.round(a.progress * 100) })}{a.next ? ` ${t('Next: {name}.', { name: a.next.name })}` : ''}</p>
+      <div className="card" role="dialog" aria-modal="true" aria-label={t('New rank: {name}', { name: r.name })} style={{ maxWidth: 340, width: 'calc(100% - 32px)', textAlign: 'center', padding: 28 }}>
+        <div style={{ display: 'grid', placeItems: 'center', marginBottom: 8 }}><Emblem level={r.tier} size={96} /></div>
+        <div className="eyebrow">{t('You have risen')} · {r.tierName}</div>
+        <div className="h-display" style={{ fontSize: 34, margin: '4px 0 8px' }}>{r.name}</div>
+        <p className="small muted" style={{ marginTop: 0 }}>{t(TIERS[r.tier].blurb)}</p>
+        <p className="small">{t('{n} points', { n: Math.floor(r.points).toLocaleString() })}{r.next ? ` · ${t('Next: {name}.', { name: r.next.name })}` : ''}</p>
         <button className="btn primary block" onClick={close}>{t('Onward')}</button>
       </div>
     </div>

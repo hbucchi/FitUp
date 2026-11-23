@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { bodyMetrics, dailyTargets, GOAL_LABEL } from '../../domain/metrics';
-import { ascent, LEVELS } from '../../domain/objective';
+import { ascent } from '../../domain/objective';
+import { useRank } from '../../data/useRank';
 import { Emblem } from '../components/Emblem';
 import { fmt } from '../../domain/nutrients';
 import { prettyDate, todayISO } from '../../domain/dates';
@@ -17,6 +18,7 @@ import { signOutAndClear } from '../../firebase/sync';
 import { LOCALE, setLocale, t } from '../../i18n';
 
 export function ProfileScreen() {
+  const rank = useRank();
   const s = useStore();
   const p = s.profile!;
   const m = bodyMetrics(p);
@@ -55,11 +57,13 @@ export function ProfileScreen() {
         const a = s.objective ? ascent(s.objective, p) : undefined;
         return (
           <a href="#plan" className="card row" style={{ textDecoration: 'none', color: 'inherit', gap: 14 }}>
-            <Emblem level={a?.level ?? 0} size={48} />
+            <Emblem level={rank.tier} size={48} />
             <div style={{ flex: 1 }}>
-              <div className="eyebrow">{t('Your rank')}</div>
-              <div className="h-section">{LEVELS[a?.level ?? 0].name}</div>
-              <div className="tiny muted">{a ? t('{pct}% of the way to your objective', { pct: Math.round(a.progress * 100) }) : t('Set your objective in the Plan tab')}</div>
+              <div className="eyebrow">{t('Your rank')} · {rank.tierName}</div>
+              <div className="h-section">{rank.name}</div>
+              <div className="tiny muted">
+                {t('{n} points', { n: Math.floor(rank.points).toLocaleString() })} · {a ? t('{pct}% of the way to your objective', { pct: Math.round(a.progress * 100) }) : t('Set your objective in the Plan tab')}
+              </div>
             </div>
           </a>
         );

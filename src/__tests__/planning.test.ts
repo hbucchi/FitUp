@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import type { BodyLog, FoodEntry, PlannedSession, Profile } from '../domain/types';
 import { planWeek, applyChanges } from '../domain/reschedule';
 import { buildNutritionPlan, reviewNutrition } from '../domain/nutritionPlan';
-import { ascent, LEVELS, snapshot, defaultTarget, levelIndex, estimateTimeline, recommendPhase } from '../domain/objective';
+import { ascent, snapshot, defaultTarget, estimateTimeline, recommendPhase } from '../domain/objective';
 import { addDays } from '../domain/programs';
 
 const p: Profile = { name: 'T', sex: 'male', birthYear: 1995, heightCm: 180, weightKg: 80, bodyFatPct: 20, activity: 'moderate', goal: 'recomp', createdAt: '' };
@@ -104,10 +104,10 @@ describe('nutrition plan', () => {
 
 describe('ascent', () => {
   const objective = { createdAt: '', experience: 'novice' as const, start: snapshot(p, '2026-01-01'), target: defaultTarget(p), levelSeen: 0 };
-  test('starts as Villager, ends as God', () => {
-    expect(LEVELS[ascent(objective, p).level].name).toBe('Villager');
+  test('0 % at the start, 100 % at the target', () => {
+    expect(ascent(objective, p).progress).toBe(0);
     const t = objective.target;
-    expect(LEVELS[ascent(objective, { weightKg: t.weightKg, bodyFatPct: t.bodyFatPct }).level].name).toBe('God');
+    expect(ascent(objective, { weightKg: t.weightKg, bodyFatPct: t.bodyFatPct }).progress).toBeCloseTo(1, 2);
   });
   test('progress counts kilograms of composition change toward the target', () => {
     const a0 = ascent(objective, p);
@@ -115,10 +115,6 @@ describe('ascent', () => {
     const a1 = ascent(objective, { weightKg: 75, bodyFatPct: ((16 - 5) / 75) * 100 });
     expect(a1.lostFatKg).toBeCloseTo(5, 1);
     expect(a1.progress).toBeCloseTo(5 / (a0.needFatKg + a0.needLeanKg), 2);
-  });
-  test('levels ladder', () => {
-    expect(LEVELS.map((l) => l.name)).toEqual(['Villager', 'Hardman', 'Soldier', 'General', 'Champion', 'Semi-god', 'God']);
-    expect(levelIndex(0.36)).toBe(2);
   });
   test('phase + timeline', () => {
     expect(recommendPhase('male', 20, { bodyFatPct: 11 }, 8)).toBe('cut');
