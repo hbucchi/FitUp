@@ -49,8 +49,8 @@ export function RankCard() {
       </div>
       <div className="row" style={{ justifyContent: 'space-between', marginTop: 14 }}>
         {TIERS.map((_, ti) => (
-          <div key={ti} title={label(tierName(ti, r.sex), r.sex)} style={{ opacity: ti <= r.tier ? 1 : 0.35, filter: ti <= r.tier ? 'none' : 'grayscale(1)', outline: ti === r.tier ? '2px solid var(--accent)' : 'none', borderRadius: '50%' }}>
-            <RankImage index={0} tier={ti} size={36} />
+          <div key={ti} title={label(tierName(ti, r.sex), r.sex)} style={{ opacity: ti <= r.tier ? 1 : 0.35, filter: ti <= r.tier ? 'none' : 'grayscale(1)' }}>
+            <RankImage index={0} tier={ti} sex={r.sex} size={36} />
           </div>
         ))}
       </div>
