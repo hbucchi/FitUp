@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useStore } from '../../data/store';
 import { useRank } from '../../data/useRank';
 import { TIERS } from '../../domain/xp';
-import { Emblem } from '../components/Emblem';
+import { RankImage } from '../components/RankImage';
 import { t } from '../../i18n';
 
 /** Shown once when training points move you into a new rank. */
@@ -20,7 +20,7 @@ export function LevelUp() {
   return (
     <div className="sheet-backdrop" style={{ alignItems: 'center' }} onMouseDown={(e) => e.target === e.currentTarget && close()}>
       <div className="card" role="dialog" aria-modal="true" aria-label={t('New rank: {name}', { name: r.name })} style={{ maxWidth: 340, width: 'calc(100% - 32px)', textAlign: 'center', padding: 28 }}>
-        <div style={{ display: 'grid', placeItems: 'center', marginBottom: 8 }}><Emblem level={r.tier} size={96} /></div>
+        <div style={{ display: 'grid', placeItems: 'center', marginBottom: 8 }}><RankImage index={r.index} size={160} /></div>
         <div className="eyebrow">{t('You have risen')} · {r.tierName}</div>
         <div className="h-display" style={{ fontSize: 34, margin: '4px 0 8px' }}>{r.name}</div>
         <p className="small muted" style={{ marginTop: 0 }}>{t(TIERS[r.tier].blurb)}</p>

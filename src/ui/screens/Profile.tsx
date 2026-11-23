@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { bodyMetrics, dailyTargets, GOAL_LABEL } from '../../domain/metrics';
 import { ascent } from '../../domain/objective';
 import { useRank } from '../../data/useRank';
-import { Emblem } from '../components/Emblem';
+import { RankImage } from '../components/RankImage';
 import { fmt } from '../../domain/nutrients';
 import { prettyDate, todayISO } from '../../domain/dates';
 import { useStore } from '../../data/store';
@@ -57,7 +57,7 @@ export function ProfileScreen() {
         const a = s.objective ? ascent(s.objective, p) : undefined;
         return (
           <a href="#plan" className="card row" style={{ textDecoration: 'none', color: 'inherit', gap: 14 }}>
-            <Emblem level={rank.tier} size={48} />
+            <RankImage index={rank.index} size={52} />
             <div style={{ flex: 1 }}>
               <div className="eyebrow">{t('Your rank')} · {rank.tierName}</div>
               <div className="h-section">{rank.name}</div>

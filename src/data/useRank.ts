@@ -18,8 +18,8 @@ export function useRank(): RankInfo {
   const weight = useStore((s) => s.profile?.weightKg ?? 75);
   const exercises = useExercises();
   return useMemo(() => {
-    const summary = trainingPoints(entries, exercises, bodyLog, weight);
     const today = todayISO();
+    const summary = trainingPoints(entries, exercises, bodyLog, weight, today);
     const from = addDays(today, -6);
     let week = 0;
     for (const [d, p] of summary.byDate) if (d >= from && d <= today) week += p;

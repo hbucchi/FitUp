@@ -1,7 +1,7 @@
 import { useRank } from '../../data/useRank';
 import { RANKS, THRESHOLDS, TIERS } from '../../domain/xp';
 import { t } from '../../i18n';
-import { Emblem } from './Emblem';
+import { RankImage } from './RankImage';
 
 const pts = (n: number) => (n < 10 ? n.toFixed(1) : Math.floor(n).toLocaleString());
 
@@ -14,13 +14,20 @@ export function RankCard() {
   return (
     <section className="card">
       <div className="row" style={{ gap: 14 }}>
-        <Emblem level={r.tier} size={64} />
+        <RankImage index={r.index} size={72} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="eyebrow">{t('{tier} · rank {n} of {total}', { tier: r.tierName, n: r.index + 1, total: RANKS.length })}</div>
           <div className="h-display" style={{ fontSize: 28 }}>{r.name}</div>
           <div className="tiny muted">{t(tier.blurb)}</div>
         </div>
       </div>
+      {r.summary.idleDays >= 4 && (
+        <div className={r.summary.drainToday > 0 ? 'error' : 'notice small'} style={{ marginTop: 12 }}>
+          {r.summary.drainToday > 0
+            ? t('{d} days without training — losing {n} points a day. Log a workout to stop it.', { d: r.summary.idleDays, n: r.summary.drainToday })
+            : t('{d} days without training — points start draining in {k} days.', { d: r.summary.idleDays, k: 8 - r.summary.idleDays })}
+        </div>
+      )}
       <div style={{ marginTop: 14 }}>
         <div className="row between tiny muted" style={{ marginBottom: 4 }}>
           <span className="num"><strong style={{ color: 'var(--ink)' }}>{pts(r.points)}</strong> {t('points')}</span>

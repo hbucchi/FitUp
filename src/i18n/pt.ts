@@ -855,4 +855,6 @@ export const PT: Record<string, string> = {
   '{name} at {n}': '{name} em {n}',
   '{n} points': '{n} pontos',
   '{tier} · rank {n} of {total}': '{tier} · patente {n} de {total}',
+  '{d} days without training — losing {n} points a day. Log a workout to stop it.': '{d} dias sem treinar — perdendo {n} pontos por dia. Registre um treino para parar.',
+  '{d} days without training — points start draining in {k} days.': '{d} dias sem treinar — os pontos começam a cair em {k} dias.',
 };

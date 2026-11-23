@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { SEED_EXERCISES } from '../domain/exercises';
 import { addDays } from '../domain/programs';
 import type { TrainingEntry } from '../domain/types';
-import { DAILY_CAP, RANKS, THRESHOLDS, TIERS, ZEUS_POINTS, setPoints, standing, trainingPoints } from '../domain/xp';
+import { DAILY_CAP, decayFor, RANKS, THRESHOLDS, TIERS, ZEUS_POINTS, setPoints, standing, trainingPoints } from '../domain/xp';
 
 const ex = (id: string) => SEED_EXERCISES.find((e) => e.id === `ex:${id}`)!;
 const BW = 80;
@@ -79,3 +79,34 @@ describe('ranks', () => {
     expect(s.toNext).toBeLessThan(1);
   });
 });
+
+describe('inactivity drain', () => {
+  const run = (date: string, min = 600): TrainingEntry => ({ id: date, date, exerciseId: 'ex:run', exerciseName: 'Run', kind: 'aerobic', durationMin: min, kcal: 0 });
+  // 6 points on Jan 1 (10 h, capped) … well, use several days to bank 60 points
+  const bank = Array.from({ length: 10 }, (_, i) => run(addDays('2026-01-01', i))); // 10 × 6 = 60 points, last on Jan 10
+  test('schedule: free for 7 days, then 1/day, after 3 weeks 2/day, after 6 weeks 3/day', () => {
+    expect([1, 7, 8, 21, 22, 42, 43, 100].map(decayFor)).toEqual([0, 0, 1, 1, 2, 2, 3, 3]);
+  });
+  test('a week off costs nothing; the 8th idle day costs 1', () => {
+    expect(trainingPoints(bank, SEED_EXERCISES, [], BW, '2026-01-17').total).toBeCloseTo(60);
+    const s = trainingPoints(bank, SEED_EXERCISES, [], BW, '2026-01-18');
+    expect(s.total).toBeCloseTo(59);
+    expect(s).toMatchObject({ idleDays: 8, drainToday: 1 });
+  });
+  test('three and six weeks off', () => {
+    // idle days 8–21 = 14 × 1, 22–42 = 21 × 2 → 56 lost after 6 weeks, leaving 4
+    expect(trainingPoints(bank, SEED_EXERCISES, [], BW, addDays('2026-01-10', 42)).total).toBeCloseTo(4);
+    // never below zero
+    const s = trainingPoints(bank, SEED_EXERCISES, [], BW, addDays('2026-01-10', 60));
+    expect(s.total).toBe(0);
+    expect(s.drainToday).toBe(3);
+  });
+  test('a workout resets the clock', () => {
+    const back = [...bank, run('2026-01-25', 60)]; // idle days 8–14 cost 7, then +1
+    const s = trainingPoints(back, SEED_EXERCISES, [], BW, '2026-01-30');
+    expect(s.total).toBeCloseTo(60 - 7 + 1);
+    expect(s.idleDays).toBe(5);
+    expect(s.lost).toBeCloseTo(7);
+  });
+});
+

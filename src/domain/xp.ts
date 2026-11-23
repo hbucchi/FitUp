@@ -14,6 +14,10 @@ import { t } from '../i18n';
  *                  A challenging hour of lifting (~20 hard sets at standard loads) ≈ 2 points.
  *   Daily cap      6 points, so a typo (500 sets, 10 h) can't buy a rank.
  *
+ * Inactivity       After 7 days without any training logged, points drain every day:
+ *                  days 8–21 −1, days 22–42 −2, day 43 on −3. Logging anything resets the
+ *                  clock. Points never go below 0, so a long break can cost ranks.
+ *
  * Ranks
  *   36 ranks in 7 tiers, Villager → Zeus. Thresholds grow geometrically:
  *     points(n) = A · (rⁿ − 1),  n = 0 … 35
@@ -127,14 +131,38 @@ function weightOn(date: string, logs: BodyLog[], fallback: number) {
   return w;
 }
 
+/** Points lost on the n-th consecutive day without training (n = 1 is the day after the last workout). */
+export function decayFor(idleDay: number): number {
+  if (idleDay <= 7) return 0;
+  if (idleDay <= 21) return 1;
+  if (idleDay <= 42) return 2;
+  return 3;
+}
+
+const dayMs = 86400000;
+const toDay = (iso: string) => Math.round(Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) / dayMs);
+
 export interface PointsSummary {
   total: number;
+  /** points earned (before inactivity losses) */
+  earned: number;
+  /** points lost to inactivity so far */
+  lost: number;
+  /** days since the last training (0 = trained today) */
+  idleDays: number;
+  /** points being lost per day right now, and per day from tomorrow */
+  drainToday: number;
+  drainTomorrow: number;
   byDate: Map<string, number>;
   /** per training entry id, after the daily cap */
   byEntry: Map<string, number>;
 }
 
-export function trainingPoints(entries: TrainingEntry[], exercises: Exercise[], bodyLog: BodyLog[], profileWeightKg: number): PointsSummary {
+/**
+ * Total points with the daily cap and, when `today` is given, the inactivity drain applied day by
+ * day in order (so a later workout earns on top of what was left, and the total can't go below 0).
+ */
+export function trainingPoints(entries: TrainingEntry[], exercises: Exercise[], bodyLog: BodyLog[], profileWeightKg: number, today?: string): PointsSummary {
   const byId = new Map(exercises.map((e) => [e.id, e]));
   const logs = [...bodyLog].sort((a, b) => a.date.localeCompare(b.date));
   const raw = new Map<string, { id: string; pts: number }[]>();
@@ -146,15 +174,39 @@ export function trainingPoints(entries: TrainingEntry[], exercises: Exercise[], 
   }
   const byDate = new Map<string, number>();
   const byEntry = new Map<string, number>();
-  let total = 0;
+  let earned = 0;
   for (const [date, list] of raw) {
     const sum = list.reduce((s, x) => s + x.pts, 0);
     const scale = sum > DAILY_CAP ? DAILY_CAP / sum : 1;
     for (const x of list) byEntry.set(x.id, x.pts * scale);
     byDate.set(date, sum * scale);
-    total += sum * scale;
+    earned += sum * scale;
   }
-  return { total, byDate, byEntry };
+  if (!today || byDate.size === 0) return { total: earned, earned, lost: 0, idleDays: 0, drainToday: 0, drainTomorrow: 0, byDate, byEntry };
+
+  // walk the calendar from the first workout to today
+  const days = [...byDate.entries()].map(([d, p]) => [toDay(d), p] as const).sort((a, b) => a[0] - b[0]);
+  const end = toDay(today);
+  let total = 0;
+  let lost = 0;
+  let idle = 0;
+  let i = 0;
+  for (let d = days[0][0]; d <= end; d++) {
+    if (i < days.length && days[i][0] === d) {
+      total += days[i][1];
+      idle = 0;
+      i++;
+      while (i < days.length && days[i][0] === d) i++;
+    } else {
+      idle++;
+      const take = Math.min(total, decayFor(idle));
+      total -= take;
+      lost += take;
+    }
+  }
+  // entries dated in the future (planned ahead) still count
+  for (; i < days.length; i++) total += days[i][1];
+  return { total, earned, lost, idleDays: idle, drainToday: decayFor(idle), drainTomorrow: decayFor(idle + 1), byDate, byEntry };
 }
 
 // ── Ranks ──────────────────────────────────────────────────────────────
