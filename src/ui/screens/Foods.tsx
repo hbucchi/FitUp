@@ -10,13 +10,14 @@ import { MacroLine } from '../components/Macros';
 import { NutrientTable } from '../components/NutrientTable';
 import { AddFoodSheet, FoodSearchList } from './AddFood';
 import { FoodEditor } from './FoodEditor';
+import type { LabelReading } from '../../agent/label';
 import { ScanSheet } from './ScanSheet';
 import { t } from '../../i18n';
 
 export function Foods() {
   const { meta, customFoods } = useCatalog();
   const [view, setView] = useState<Food | null>(null);
-  const [editing, setEditing] = useState<Food | 'new' | { barcode: string } | null>(null);
+  const [editing, setEditing] = useState<Food | 'new' | { barcode: string; fromLabel?: LabelReading } | null>(null);
   const [scanning, setScanning] = useState(false);
   const saveCustomFood = useStore((s) => s.saveCustomFood);
   const [adding, setAdding] = useState<Food | null>(null);
@@ -60,7 +61,7 @@ export function Foods() {
         <ScanSheet
           onClose={() => setScanning(false)}
           onFood={(f) => { saveCustomFood(f); setScanning(false); setAdding(f); }}
-          onCreate={(barcode) => { setScanning(false); setEditing({ barcode }); }}
+          onCreate={(barcode, fromLabel) => { setScanning(false); setEditing({ barcode, fromLabel }); }}
         />
       )}
       {view && !adding && !editing && <FoodDetailSheet food={view} onClose={() => setView(null)} onAdd={() => setAdding(view)} onEdit={() => setEditing(view)} />}
@@ -68,7 +69,8 @@ export function Foods() {
       {editing && (
         <Sheet title={editing === 'new' || !('id' in editing) ? t('New food') : t('Edit food')} onClose={() => setEditing(null)}>
           <FoodEditor
-            initial={editing !== 'new' && 'id' in editing ? editing : undefined}
+            initial={editing !== 'new' && 'id' in editing ? editing : editing !== 'new' ? editing.fromLabel?.food : undefined}
+            notice={editing !== 'new' && !('id' in editing) ? editing.fromLabel?.warning : undefined}
             barcode={editing !== 'new' && !('id' in editing) ? editing.barcode : undefined}
             onSaved={(f) => { setEditing(null); setView(f); }}
           />

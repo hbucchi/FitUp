@@ -12,6 +12,7 @@ import { IconChevron, IconPlus, IconSearch } from '../components/Icons';
 import { MacroLine } from '../components/Macros';
 import { NutrientTable } from '../components/NutrientTable';
 import { FoodEditor } from './FoodEditor';
+import type { LabelReading } from '../../agent/label';
 import { ScanSheet } from './ScanSheet';
 import { t } from '../../i18n';
 
@@ -63,7 +64,7 @@ export function FoodSearchList({ onPick, autoFocus = true }: { onPick: (f: Food)
                       {Math.round(f.nutrients.kcal ?? 0)} kcal · <MacroLine n={f.nutrients} /> <span className="muted">{t('per 100 g')}</span>
                     </div>
                   </div>
-                  {f.source === 'Custom' && <span className="badge">{t('Mine')}</span>}
+                  {(f.source === 'Custom' || f.source === 'Label photo') && <span className="badge">{t('Mine')}</span>}
                   <IconChevron width={16} height={16} />
                 </button>
               </li>
@@ -159,7 +160,7 @@ export function AddFoodSheet({ date, meal, onClose, entry, food: presetFood }: {
   const [food, setFood] = useState<Food | undefined>(
     presetFood ?? (entry ? byId.get(entry.foodId) ?? foodFromEntry(entry) : undefined),
   );
-  const [creating, setCreating] = useState<false | { barcode?: string }>(false);
+  const [creating, setCreating] = useState<false | { barcode?: string; fromLabel?: LabelReading }>(false);
   const [scanning, setScanning] = useState(false);
   const saveCustomFood = useStore((s) => s.saveCustomFood);
 
@@ -168,7 +169,7 @@ export function AddFoodSheet({ date, meal, onClose, entry, food: presetFood }: {
       <ScanSheet
         onClose={() => setScanning(false)}
         onFood={(f) => { saveCustomFood(f); setScanning(false); setFood(f); }}
-        onCreate={(barcode) => { setScanning(false); setCreating({ barcode }); }}
+        onCreate={(barcode, fromLabel) => { setScanning(false); setCreating({ barcode, fromLabel }); }}
       />
     );
   }
@@ -176,7 +177,7 @@ export function AddFoodSheet({ date, meal, onClose, entry, food: presetFood }: {
   if (creating) {
     return (
       <Sheet title={t('New food')} onClose={onClose} leading={<button className="icon-btn" aria-label={t('Go back')} onClick={() => setCreating(false)}><IconChevron dir="left" /></button>}>
-        <FoodEditor barcode={creating.barcode} onSaved={(f) => { setCreating(false); setFood(f); }} />
+        <FoodEditor barcode={creating.barcode} initial={creating.fromLabel?.food} notice={creating.fromLabel?.warning} onSaved={(f) => { setCreating(false); setFood(f); }} />
       </Sheet>
     );
   }

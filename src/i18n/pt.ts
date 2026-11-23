@@ -801,4 +801,13 @@ export const PT: Record<string, string> = {
   'AI estimate': 'Estimativa da IA',
   'Allow AI estimates for foods not in the database': 'Permitir estimativas da IA para alimentos fora do banco de dados',
   'Comparing database foods matching {p}': 'Comparando alimentos do banco que correspondem a {p}',
+  'Photograph the nutrition label': 'Fotografar a tabela nutricional',
+  'Reading the label…': 'Lendo a tabela…',
+  'Type it in instead': 'Digitar os valores',
+  'Read from the label photo — check against the package before saving.': 'Lido da foto do rótulo — confira com a embalagem antes de salvar.',
+  'No nutrition table could be read in the photo. Try again closer, flat and in good light.': 'Não foi possível ler a tabela na foto. Tente de novo mais perto, com a embalagem reta e boa luz.',
+  'The serving size could not be read — enter the values yourself.': 'Não deu para ler a porção — digite os valores.',
+  'serving': 'porção',
+  'Scanned product': 'Produto escaneado',
+  'Check the numbers: {kcal} kcal is printed, but protein, carbs and fat add up to {exp} kcal.': 'Confira os números: o rótulo diz {kcal} kcal, mas proteína, carboidratos e gordura somam {exp} kcal.',
 };

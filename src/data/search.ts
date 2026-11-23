@@ -258,7 +258,7 @@ export function search(index: SearchIndex, query: string, opts: SearchOptions = 
     score += it.prior;
     if (it.rawish && !saysRaw) score -= 0.15;
     if (it.food.source === 'USDA Foundation') score += 0.05;
-    if (it.food.source === 'Custom') score += 0.25;
+    if (it.food.source === 'Custom' || it.food.source === 'Label photo') score += 0.25;
     // Brazilian table first in Portuguese, USDA first in English
     if (it.brazil) score += lang === 'pt' ? 0.4 : it.food.source.startsWith('TACO') ? -0.05 : 0;
     if (/\braw\b/i.test(it.food.name) && it.tokens.length <= 4) score += 0.05;

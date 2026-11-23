@@ -7,7 +7,7 @@ import { t } from '../../i18n';
 
 const MACROS: NutrientKey[] = ['kcal', 'protein', 'carbs', 'fat'];
 
-export function FoodEditor({ initial, onSaved, barcode }: { initial?: Food; onSaved: (f: Food) => void; barcode?: string }) {
+export function FoodEditor({ initial, onSaved, barcode, notice }: { initial?: Food; onSaved: (f: Food) => void; barcode?: string; notice?: string }) {
   const save = useStore((s) => s.saveCustomFood);
   const serving0 = initial?.portions[0];
   const [name, setName] = useState(initial?.name ?? '');
@@ -15,7 +15,7 @@ export function FoodEditor({ initial, onSaved, barcode }: { initial?: Food; onSa
   const [basis, setBasis] = useState<'serving' | '100g'>(serving0 ? 'serving' : '100g');
   const [servingLabel, setServingLabel] = useState(serving0?.label ?? 'serving');
   const [servingGrams, setServingGrams] = useState<number | ''>(serving0?.grams ?? '');
-  const [showMicros, setShowMicros] = useState(false);
+  const [showMicros, setShowMicros] = useState(() => !!initial && Object.keys(initial.nutrients).some((k) => !['kcal', 'protein', 'carbs', 'fat'].includes(k)));
   const toBasis = (per100: Nutrients) => {
     const f = basis === 'serving' && serving0 ? serving0.grams / 100 : 1;
     const out: Record<string, number | ''> = {};
@@ -41,7 +41,7 @@ export function FoodEditor({ initial, onSaved, barcode }: { initial?: Food; onSa
       name: name.trim(),
       brand: brand.trim() || undefined,
       category: 'My foods',
-      source: 'Custom',
+      source: initial?.source === 'Label photo' ? 'Label photo' : 'Custom',
       nutrients,
       portions: [...portions, ...(initial?.portions.slice(1) ?? [])],
       ...((barcode ?? initial?.barcode) && { barcode: barcode ?? initial?.barcode }),
@@ -59,6 +59,8 @@ export function FoodEditor({ initial, onSaved, barcode }: { initial?: Food; onSa
 
   return (
     <div className="stack">
+      {initial?.source === 'Label photo' && <div className="notice small">{t('Read from the label photo — check against the package before saving.')}</div>}
+      {notice && <div className="error">{notice}</div>}
       <label className="field">{t('Name')}<input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('e.g. Grandma\'s lentil soup')} /></label>
       <label className="field">{t('Brand')} <span className="muted">({t('optional')})</span><input className="input" value={brand} onChange={(e) => setBrand(e.target.value)} /></label>
       <div className="field">

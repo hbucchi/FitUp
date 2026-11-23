@@ -5,15 +5,17 @@ import { useStore } from '../../data/store';
 import { t } from '../../i18n';
 import { Sheet } from '../components/Sheet';
 import { MacroLine } from '../components/Macros';
+import { agentConfig, useAssistant } from '../../agent/settings';
+import { photoToDataUrl, readLabel, type LabelReading } from '../../agent/label';
 
-type Phase = 'scanning' | 'looking' | 'found' | 'notfound';
+type Phase = 'scanning' | 'looking' | 'found' | 'notfound' | 'reading';
 
 interface Detector {
   detect(source: HTMLVideoElement): Promise<{ rawValue: string }[]>;
 }
 
 /** Camera barcode scanner: native BarcodeDetector where available (Android), ZXing elsewhere (iPhone). */
-export function ScanSheet({ onClose, onFood, onCreate }: { onClose: () => void; onFood: (f: Food) => void; onCreate: (barcode: string) => void }) {
+export function ScanSheet({ onClose, onFood, onCreate }: { onClose: () => void; onFood: (f: Food) => void; onCreate: (barcode: string, fromLabel?: LabelReading) => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const stopRef = useRef<() => void>(() => {});
   const [phase, setPhase] = useState<Phase>('scanning');
@@ -22,6 +24,33 @@ export function ScanSheet({ onClose, onFood, onCreate }: { onClose: () => void; 
   const [food, setFood] = useState<Food | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const saved = useStore((s) => s.customFoods);
+  const ai = agentConfig(useAssistant());
+  const photo = useRef<HTMLInputElement>(null);
+  const [labelError, setLabelError] = useState<string | null>(null);
+  const back = useRef<Phase>('notfound');
+
+  /** The producer's own numbers: photograph the nutrition table and let the model copy it. */
+  const onPhoto = async (file: File | undefined) => {
+    if (!file || !ai) return;
+    setLabelError(null);
+    setPhase('reading');
+    try {
+      const reading = await readLabel(ai, await photoToDataUrl(file), code || undefined);
+      onCreate(code, reading);
+    } catch (e) {
+      setLabelError((e as Error).message);
+      setPhase(back.current);
+    }
+  };
+  const labelButton = (primary: boolean) => (
+    <>
+      <input ref={photo} type="file" accept="image/*" capture="environment" hidden onChange={(e) => { back.current = phase; void onPhoto(e.target.files?.[0]); e.target.value = ''; }} />
+      {ai ? (
+        <button className={`btn ${primary ? 'primary' : ''} block`} onClick={() => photo.current?.click()}>{t('Photograph the nutrition label')}</button>
+      ) : null}
+      {labelError && <div className="error">{labelError}</div>}
+    </>
+  );
 
   const handle = async (raw: string) => {
     const c = raw.replace(/\D/g, '');
@@ -114,6 +143,7 @@ export function ScanSheet({ onClose, onFood, onCreate }: { onClose: () => void; 
           </>
         )}
         {phase === 'looking' && <p className="muted">{t('Looking up {code}…', { code })}</p>}
+        {phase === 'reading' && <p className="muted">{t('Reading the label…')}</p>}
         {phase === 'found' && food && (
           <>
             <div className="card" style={{ marginBottom: 0 }}>
@@ -126,13 +156,15 @@ export function ScanSheet({ onClose, onFood, onCreate }: { onClose: () => void; 
               {food.source === 'Open Food Facts' && <div className="tiny muted" style={{ marginTop: 8 }}>{t('Community data — check against the label.')}</div>}
             </div>
             <button className="btn primary block" onClick={() => onFood(food)}>{t('Add to diary')}</button>
+            {food.source === 'Open Food Facts' && labelButton(false)}
             <button className="btn ghost block" onClick={() => { setFood(null); setManual(''); setPhase('scanning'); }}>{t('Scan another')}</button>
           </>
         )}
         {phase === 'notfound' && (
           <>
             <p className="muted" style={{ margin: 0 }}>{t('{code} isn’t in USDA or Open Food Facts.', { code })}</p>
-            <button className="btn primary block" onClick={() => onCreate(code)}>{t('Create it from the label')}</button>
+            {labelButton(true)}
+            <button className={`btn ${ai ? '' : 'primary'} block`} onClick={() => onCreate(code)}>{ai ? t('Type it in instead') : t('Create it from the label')}</button>
             <button className="btn ghost block" onClick={() => { setManual(''); setPhase('scanning'); }}>{t('Scan another')}</button>
           </>
         )}
