@@ -4,7 +4,7 @@ import type { AgentContext, LoggedItem } from '../../agent/tools';
 import { useAssistant } from '../../agent/settings';
 import { useCatalog } from '../../data/useCatalog';
 import { useStore } from '../../data/store';
-import { MEAL_LABEL, SYMPTOM_KINDS } from '../../domain/types';
+import { MEAL_LABEL, BRISTOL, SYMPTOM_KINDS } from '../../domain/types';
 import { checkInSummary } from './CheckIn';
 import { fmt } from '../../domain/nutrients';
 import { useExercises } from './TrainingLog';
@@ -18,6 +18,7 @@ const TOOL_LABEL: Record<string, (i: any) => string> = {
   search_exercises: (i) => t('Searching exercises for “{q}”', { q: i.query }),
   log_training: () => t('Logging training'),
   log_checkin: () => t('Logging check-in'),
+  log_bowel_movement: () => t('Logging bowel movement'),
   log_symptom: (i) => t('Logging {what}', { what: t(SYMPTOM_KINDS[i.kind as keyof typeof SYMPTOM_KINDS] ?? 'symptom').toLowerCase() }),
 };
 
@@ -69,6 +70,7 @@ export function AgentRun({ text, date, onDone }: { text: string; date: string; o
     if (it.kind === 'food') removeFoodEntry(it.entry.id);
     else if (it.kind === 'training') removeTraining(it.entry.id);
     else if (it.kind === 'symptom') st.removeSymptom(it.entry.id);
+    else if (it.kind === 'bowel') st.removeBowel(it.entry.id);
     else if (it.previous) st.saveCheckIn(it.previous);
     else st.removeCheckIn(it.entry.date);
     setUndone((s) => new Set(s).add(it.entry.id));
@@ -111,6 +113,11 @@ export function AgentRun({ text, date, onDone }: { text: string; date: string; o
                       <>
                         <div className="title">{t(it.entry.exerciseName)}</div>
                         <div className="sub">{t('Training')} · {it.entry.durationMin} min · {it.entry.kcal} kcal</div>
+                      </>
+                    ) : it.kind === 'bowel' ? (
+                      <>
+                        <div className="title">{t('Bowel movement')}</div>
+                        <div className="sub">{t('Type {n}', { n: it.entry.bristol })} · {t(BRISTOL[it.entry.bristol])}{it.entry.time ? ` · ${it.entry.time}` : ''}</div>
                       </>
                     ) : it.kind === 'symptom' ? (
                       <>

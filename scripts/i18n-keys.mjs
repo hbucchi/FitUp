@@ -33,6 +33,8 @@ const types = readFileSync('src/domain/types.ts', 'utf8');
 const sk = types.match(/SYMPTOM_KINDS = \{([\s\S]*?)\}/)[1];
 for (const m of sk.matchAll(/: '([^']+)'/g)) keys.add(m[1]);
 keys.add('symptom');
+const br = types.match(/BRISTOL = \{([\s\S]*?)\}/)[1];
+for (const m of br.matchAll(/: '([^']+)'/g)) keys.add(m[1]);
 const xp = readFileSync('src/domain/xp.ts', 'utf8');
 const tiersSrc = xp.slice(xp.indexOf('export const TIERS'), xp.indexOf('export const RANKS'));
 for (const m of tiersSrc.matchAll(/'((?:[^'\\]|\\.)*)'/g)) keys.add(unesc(m[1]));

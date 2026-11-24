@@ -78,33 +78,58 @@ async function runAnthropic(cfg: AgentConfig, task: AgentTask, onEvent: (e: Agen
   throw new Error(t('The assistant took too many steps and was stopped.'));
 }
 
-/** OpenAI — Chat Completions with function calling. */
+/** Reasoning models (GPT-5 family, o-series) get a reasoning effort; older models don't accept one. */
+export const isReasoningModel = (model: string) => /^(gpt-5|o\d)/.test(model);
+
+/** Text of a Responses API reply (output_text, or the message parts). */
+function responseText(res: any): string {
+  if (typeof res.output_text === 'string') return res.output_text.trim();
+  return (res.output ?? [])
+    .filter((o: any) => o.type === 'message')
+    .flatMap((o: any) => o.content ?? [])
+    .filter((c: any) => c.type === 'output_text')
+    .map((c: any) => c.text)
+    .join('\n')
+    .trim();
+}
+
+/**
+ * OpenAI — Responses API with function calling. OpenAI's guidance for GPT-5.x is to call tools
+ * through /v1/responses: reasoning runs between tool calls, and its (encrypted) reasoning items
+ * are sent back each turn so the model keeps its chain of thought across steps. Stateless:
+ * store=false, nothing is kept on OpenAI's side.
+ */
 async function runOpenAI(cfg: AgentConfig, task: AgentTask, onEvent: (e: AgentEvent) => void, signal?: AbortSignal) {
-  const messages: any[] = [{ role: 'system', content: task.system }, { role: 'user', content: task.user }];
-  const tools = task.tools.map((t) => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.input_schema } }));
+  const input: any[] = [{ role: 'user', content: task.user }];
+  const tools = task.tools.map((t) => ({ type: 'function', name: t.name, description: t.description, parameters: t.input_schema, strict: false }));
+  const reasoning = isReasoningModel(cfg.model);
   for (let step = 0; step < MAX_STEPS; step++) {
-    const body: Record<string, unknown> = { model: cfg.model, messages, tools };
-    // GPT-5 family / o-series are reasoning models: a little reasoning makes food matching much more reliable
-    if (/^(gpt-5|o\d)/.test(cfg.model)) body.reasoning_effort = 'low';
-    const res = await post('https://api.openai.com/v1/chat/completions', { authorization: `Bearer ${cfg.apiKey}` }, body, signal);
-    const msg = res.choices?.[0]?.message;
-    if (!msg) throw new Error(t('Empty response from OpenAI.'));
-    messages.push(msg);
-    const calls: any[] = msg.tool_calls ?? [];
+    const body: Record<string, unknown> = { model: cfg.model, instructions: task.system, input, tools, store: false };
+    if (reasoning) {
+      body.reasoning = { effort: 'low' };
+      body.include = ['reasoning.encrypted_content'];
+    }
+    const res = await post('https://api.openai.com/v1/responses', { authorization: `Bearer ${cfg.apiKey}` }, body, signal);
+    if (res.status === 'incomplete' && !res.output?.length) throw new Error(t('Empty response from OpenAI.'));
+    const output: any[] = res.output ?? [];
+    // keep reasoning, messages and calls in the conversation, as the API expects
+    input.push(...output);
+    const calls = output.filter((o) => o.type === 'function_call');
     if (calls.length === 0) {
-      const final = String(msg.content ?? '').trim();
+      const final = responseText(res);
+      if (!final && !output.length) throw new Error(t('Empty response from OpenAI.'));
       onEvent({ type: 'text', text: final });
       return final;
     }
     for (const c of calls) {
-      let input: Record<string, unknown> = {};
+      let args: Record<string, unknown> = {};
       try {
-        input = JSON.parse(c.function.arguments || '{}');
+        args = JSON.parse(c.arguments || '{}');
       } catch {
         /* fall through with empty input — the tool will report what is missing */
       }
-      const r = runTool(c.function.name, input, task, onEvent);
-      messages.push({ role: 'tool', tool_call_id: c.id, content: r.content });
+      const r = runTool(c.name, args, task, onEvent);
+      input.push({ type: 'function_call_output', call_id: c.call_id, output: r.content });
     }
   }
   throw new Error(t('The assistant took too many steps and was stopped.'));

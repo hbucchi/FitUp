@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { Symptom, SymptomKind } from '../../domain/types';
+import type { BowelMovement, Symptom, SymptomKind } from '../../domain/types';
 import { SYMPTOM_KINDS } from '../../domain/types';
 import { addDays, weekday } from '../../domain/programs';
 import { prettyDate, todayISO } from '../../domain/dates';
@@ -9,10 +9,11 @@ import { agentReady, useAssistant } from '../../agent/settings';
 import { IconMic, IconPlus } from '../components/Icons';
 import { CheckInSheet, checkInSummary } from './CheckIn';
 import { SymptomSheet } from './SymptomSheet';
+import { BowelSheet, bristolBand, bristolTone } from './BowelSheet';
 import { VoiceLogSheet } from './VoiceLog';
 import { t } from '../../i18n';
 
-const DAY = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => t(d).charAt(0));
 
 /** 14 days: sleep as bars (0–10 h), mood as dots (1–5). */
 function Trend({ days }: { days: { date: string; sleep?: number; mood?: number }[] }) {
@@ -41,8 +42,9 @@ export function Wellbeing() {
   const today = todayISO();
   const checkIns = useStore((s) => s.checkIns);
   const symptoms = useStore((s) => s.symptoms);
+  const bowel = useStore((s) => s.bowelMovements ?? []);
   const assistantOn = agentReady(useAssistant());
-  const [modal, setModal] = useState<'checkin' | 'symptom' | 'voice' | { edit: Symptom } | null>(null);
+  const [modal, setModal] = useState<'checkin' | 'symptom' | 'bowel' | 'voice' | { edit: Symptom } | { bowel: BowelMovement } | null>(null);
 
   const todayCheckIn = checkIns.find((c) => c.date === today);
   const todaySymptoms = symptoms.filter((s) => s.date === today).sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''));
@@ -58,6 +60,24 @@ export function Wellbeing() {
   const counts = (Object.keys(SYMPTOM_KINDS) as SymptomKind[])
     .map((k) => [k, month.filter((s) => s.kind === k).length] as const)
     .filter(([, n]) => n > 0);
+
+  // bowel habits, last 7 days (today included)
+  const todayBowel = bowel.filter((b) => b.date === today).sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''));
+  const week = bowel.filter((b) => b.date > addDays(today, -7) && b.date <= today);
+  const lastDate = bowel.map((b) => b.date).filter((d) => d <= today).sort().pop();
+  const daysSince = lastDate ? Math.round((Date.parse(today) - Date.parse(lastDate)) / 86400000) : undefined;
+  const avgType = week.length ? week.reduce((s, b) => s + b.bristol, 0) / week.length : undefined;
+  const bowelRow = (b: BowelMovement) => (
+    <li key={b.id}>
+      <button className="list-item" onClick={() => setModal({ bowel: b })}>
+        <div className="main">
+          <div className="title">{t('Bowel movement')}</div>
+          <div className="sub">{[b.time, b.note].filter(Boolean).join(' · ')}</div>
+        </div>
+        <span className="badge" style={{ color: bristolTone(b.bristol) }}>{t('Type {n}', { n: b.bristol })}</span>
+      </button>
+    </li>
+  );
 
   const row = (s: Symptom, withDate = false) => (
     <li key={s.id}>
@@ -82,6 +102,7 @@ export function Wellbeing() {
         <button className="btn" onClick={() => setModal('checkin')}>{todayCheckIn ? t('Edit check-in') : t('Check-in')}</button>
         <button className="btn" onClick={() => setModal('symptom')}><IconPlus /> {t('Symptom')}</button>
       </div>
+      <button className="btn block" style={{ marginTop: -4, marginBottom: 14 }} onClick={() => setModal('bowel')}><IconPlus /> {t('Bowel movement')}</button>
 
       <section className="card flush">
         <div className="meal-head"><h2 className="h-section">{t('Today')}</h2></div>
@@ -89,7 +110,21 @@ export function Wellbeing() {
           {todayCheckIn ? checkInSummary(todayCheckIn) || t('Checked in') : t('No check-in yet.')}
         </div>
         {todaySymptoms.length > 0 && <ul className="list">{todaySymptoms.map((s) => row(s))}</ul>}
+        {todayBowel.length > 0 && <ul className="list">{todayBowel.map(bowelRow)}</ul>}
       </section>
+
+      {bowel.length > 0 && (
+        <section className="card">
+          <div className="card-head"><h2 className="h-section">{t('Digestion · 7 days')}</h2></div>
+          <div className="grid3">
+            <div className="stat"><div className="k">{t('Bowel movements')}</div><div className="v">{week.length}</div></div>
+            <div className="stat"><div className="k">{t('Average type')}</div><div className="v" style={{ color: avgType != null ? bristolTone(Math.round(avgType)) : undefined }}>{avgType != null ? avgType.toFixed(1) : '—'}</div></div>
+            <div className="stat"><div className="k">{t('Last')}</div><div className="v">{daysSince == null ? '—' : daysSince === 0 ? t('Today') : t('{n} d ago', { n: daysSince })}</div></div>
+          </div>
+          {avgType != null && <div className="tiny muted" style={{ marginTop: 8 }}>{bristolBand(Math.round(avgType))} · {t('types 3–4 are the healthy range')}</div>}
+          {daysSince != null && daysSince >= 3 && <div className="notice small" style={{ marginTop: 8 }}>{t('{n} days without a bowel movement — more water, fibre and a walk help.', { n: daysSince })}</div>}
+        </section>
+      )}
 
       <section className="card">
         <div className="card-head">
@@ -119,7 +154,9 @@ export function Wellbeing() {
       {modal === 'checkin' && <CheckInSheet date={today} onClose={() => setModal(null)} />}
       {modal === 'symptom' && <SymptomSheet date={today} onClose={() => setModal(null)} />}
       {modal === 'voice' && <VoiceLogSheet date={today} onClose={() => setModal(null)} placeholder={t('Slept 6 h, headache this afternoon, cramp in my left calf')} />}
-      {modal && typeof modal === 'object' && <SymptomSheet date={modal.edit.date} symptom={modal.edit} onClose={() => setModal(null)} />}
+      {modal === 'bowel' && <BowelSheet date={today} onClose={() => setModal(null)} />}
+      {modal && typeof modal === 'object' && 'edit' in modal && <SymptomSheet date={modal.edit.date} symptom={modal.edit} onClose={() => setModal(null)} />}
+      {modal && typeof modal === 'object' && 'bowel' in modal && <BowelSheet date={modal.bowel.date} entry={modal.bowel} onClose={() => setModal(null)} />}
     </>
   );
 }

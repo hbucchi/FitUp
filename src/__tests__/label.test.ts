@@ -35,14 +35,16 @@ describe('nutrition label → food', () => {
 
 describe('vision requests', () => {
   const image = 'data:image/jpeg;base64,AAAA';
-  test('OpenAI: image + forced function call', async () => {
-    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ choices: [{ message: { tool_calls: [{ function: { name: 'record_label', arguments: JSON.stringify(WHEY) } }] } }] }) }));
+  test('OpenAI: Responses API with image input and a forced function call', async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ output: [{ type: 'function_call', call_id: 'x', name: 'record_label', arguments: JSON.stringify(WHEY) }] }) }));
     vi.stubGlobal('fetch', fetchMock);
     const r = await readLabel({ provider: 'openai', apiKey: 'k', model: 'gpt-5.4-mini' }, image, '7891234567895');
+    expect((fetchMock.mock.calls[0] as any)[0]).toBe('https://api.openai.com/v1/responses');
     const body = JSON.parse((fetchMock.mock.calls[0] as any)[1].body);
-    expect(body.messages[1].content[1]).toEqual({ type: 'image_url', image_url: { url: image, detail: 'high' } });
-    expect(body.tool_choice).toEqual({ type: 'function', function: { name: 'record_label' } });
-    expect(body.messages[0].content).toMatch(/never estimate/);
+    expect(body.input[0].content[1]).toEqual({ type: 'input_image', image_url: image, detail: 'high' });
+    expect(body.tool_choice).toEqual({ type: 'function', name: 'record_label' });
+    expect(body.reasoning).toEqual({ effort: 'low' });
+    expect(body.instructions).toMatch(/never estimate/);
     expect(r.food.nutrients.protein).toBeCloseTo(80);
   });
   test('Claude: base64 image block + forced tool', async () => {

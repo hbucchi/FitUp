@@ -26,7 +26,7 @@ import { useStore, type AppState } from '../data/store';
  * Firestore's persistent cache makes both directions work offline.
  */
 
-export const COLLECTIONS = ['foodEntries', 'trainingEntries', 'customFoods', 'customExercises', 'bodyLog', 'plannedSessions', 'checkIns', 'symptoms'] as const;
+export const COLLECTIONS = ['foodEntries', 'trainingEntries', 'customFoods', 'customExercises', 'bodyLog', 'plannedSessions', 'checkIns', 'symptoms', 'bowelMovements'] as const;
 /** Small per-user documents stored as fields of users/{uid}. */
 export const USER_FIELDS = ['profile', 'recentFoodIds', 'objective', 'activePlan', 'nutritionPlan', 'reviews', 'rankSeen'] as const;
 type CollectionKey = (typeof COLLECTIONS)[number];

@@ -1,5 +1,5 @@
-import type { CheckIn, Exercise, Food, FoodEntry, Meal, Symptom, SymptomKind, TrainingEntry } from '../domain/types';
-import { SYMPTOM_KINDS } from '../domain/types';
+import type { BowelMovement, BristolType, CheckIn, Exercise, Food, FoodEntry, Meal, Symptom, SymptomKind, TrainingEntry } from '../domain/types';
+import { BRISTOL, SYMPTOM_KINDS } from '../domain/types';
 import { replyLanguage } from '../i18n';
 import { MEALS } from '../domain/types';
 import { scaleNutrients } from '../domain/nutrients';
@@ -20,7 +20,8 @@ export type LoggedItem =
   | { kind: 'food'; entry: FoodEntry }
   | { kind: 'training'; entry: TrainingEntry }
   | { kind: 'checkin'; entry: CheckIn & { id: string }; previous?: CheckIn }
-  | { kind: 'symptom'; entry: Symptom };
+  | { kind: 'symptom'; entry: Symptom }
+  | { kind: 'bowel'; entry: BowelMovement };
 
 export interface AgentContext {
   date: string;
@@ -165,6 +166,20 @@ export const TOOLS: ToolDef[] = [
         note: { type: 'string', description: 'Short context, e.g. "during the run"' },
       },
       required: ['kind', 'severity'],
+    },
+  },
+  {
+    name: 'log_bowel_movement',
+    description:
+      'Record a bowel movement (poop) the user mentions, one call each. bristol = Bristol stool scale: 1 separate hard lumps, 2 lumpy sausage, 3 sausage with cracks, 4 smooth soft sausage (normal), 5 soft blobs, 6 mushy, 7 watery. If they only say it was normal, use 4; "hard"/"constipated" ≈ 2; "loose"/"diarrhoea" ≈ 6 (7 if watery).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        bristol: { type: 'integer', minimum: 1, maximum: 7 },
+        time: HHMM,
+        note: { type: 'string', description: 'Short context, e.g. "after coffee"' },
+      },
+      required: ['bristol'],
     },
   },
 ];
@@ -369,6 +384,18 @@ export function executeTool(name: string, input: Input, ctx: AgentContext): unkn
       ctx.logged.push({ kind: 'symptom', entry: symptom });
       return { logged: true, symptom };
     }
+    case 'log_bowel_movement': {
+      const bristol = Math.round(Number(input.bristol));
+      if (!(bristol >= 1 && bristol <= 7)) throw new ToolError('bristol goes from 1 to 7.');
+      const entry: BowelMovement = {
+        id: uid(), date: ctx.date, bristol: bristol as BristolType, via: 'agent',
+        ...(input.time && { time: String(input.time) }),
+        ...(input.note && { note: String(input.note) }),
+      };
+      store.saveBowel(entry);
+      ctx.logged.push({ kind: 'bowel', entry });
+      return { logged: true, bristol, description: BRISTOL[bristol as BristolType] };
+    }
     default:
       throw new ToolError(`Unknown tool ${name}`);
   }
@@ -393,6 +420,7 @@ How to work:
 - For training, call search_exercises, then log_training with the details given.
 - If they mention sleep, mood, energy, stress or soreness, call log_checkin (scales 1–5; "tired" ≈ energy 2, "great" ≈ 5).
 - If they mention a symptom (headache, cramp, pain, nausea…), call log_symptom once per symptom. Record it; don't diagnose.
+- If they mention a bowel movement (pooped, went to the toilet, fiz cocô, evacuei…), call log_bowel_movement with the Bristol type.
 - If a tool returns an error, correct the call and retry.
 - Never ask questions. Make reasonable assumptions instead.
 

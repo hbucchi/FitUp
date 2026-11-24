@@ -54,6 +54,30 @@ export interface Symptom {
   via?: 'manual' | 'agent';
 }
 
+/**
+ * Bristol Stool Scale (Lewis & Heaton, 1997): 1–2 hard (constipation), 3–4 normal, 5–7 loose.
+ * Stool form tracks how long food took to pass through the gut.
+ */
+export const BRISTOL = {
+  1: 'Separate hard lumps',
+  2: 'Lumpy, sausage-shaped',
+  3: 'Sausage with cracks',
+  4: 'Smooth and soft',
+  5: 'Soft blobs',
+  6: 'Mushy, ragged edges',
+  7: 'Watery, no solid pieces',
+} as const;
+export type BristolType = keyof typeof BRISTOL;
+
+export interface BowelMovement {
+  id: string;
+  date: string;
+  time?: string;
+  bristol: BristolType;
+  note?: string;
+  via?: 'manual' | 'agent';
+}
+
 /** Weigh-ins over time, so we can chart the path later. */
 export interface BodyLog {
   date: string; // YYYY-MM-DD

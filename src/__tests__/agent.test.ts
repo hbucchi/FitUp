@@ -51,6 +51,14 @@ describe('tools', () => {
     expect(() => executeTool('regex_foods', { pattern: '([a-z' }, ctx())).toThrow(/Invalid pattern/);
     expect(() => executeTool('regex_foods', { pattern: '(a+)+$' }, ctx())).toThrow(/nested repetition/);
   });
+  test('log_bowel_movement records a Bristol type, undoable like other entries', () => {
+    const c = ctx();
+    const r = executeTool('log_bowel_movement', { bristol: 4, time: '08:15', note: 'after coffee' }, c) as any;
+    expect(r).toMatchObject({ logged: true, bristol: 4, description: 'Smooth and soft' });
+    expect(useStore.getState().bowelMovements[0]).toMatchObject({ bristol: 4, time: '08:15', via: 'agent' });
+    expect(c.logged[0].kind).toBe('bowel');
+    expect(() => executeTool('log_bowel_movement', { bristol: 9 }, c)).toThrow(/1 to 7/);
+  });
   test('estimates are off unless allowed', () => {
     const args = { name: 'Burrito bowl', serving_label: 'bowl', serving_grams: 500, kcal: 750, protein_g: 45, carbs_g: 80, fat_g: 25 };
     expect(() => executeTool('create_food', args, ctx())).toThrow(/Estimates are turned off/);
@@ -118,35 +126,50 @@ describe('agent loop', () => {
     expect(events.filter((e) => e.type === 'tool' && !e.ok)).toHaveLength(1);
   });
 
-  test('OpenAI: function calling round trip', async () => {
+  // Responses API helpers: a function call item and a final message
+  const fcall = (id: string, name: string, args: object) => ({ type: 'function_call', call_id: id, name, arguments: JSON.stringify(args) });
+  const reply = (...output: object[]) => ({ output });
+  const say = (text: string) => ({ type: 'message', role: 'assistant', content: [{ type: 'output_text', text }] });
+
+  test('OpenAI: Responses API function-calling round trip', async () => {
     const replies = [
-      { choices: [{ message: { role: 'assistant', content: null, tool_calls: [{ id: 'c1', type: 'function', function: { name: 'log_food', arguments: JSON.stringify({ food_id: banana.id, quantity: 120, unit: 'g', meal: 'snack' }) } }] } }] },
-      { choices: [{ message: { role: 'assistant', content: 'Logged 120 g banana.' } }] },
+      reply(fcall('c1', 'log_food', { food_id: banana.id, quantity: 120, unit: 'g', meal: 'snack' })),
+      reply(say('Logged 120 g banana.')),
     ];
     const fetchMock = vi.fn(async () => ok(replies.shift()));
     vi.stubGlobal('fetch', fetchMock);
-    await runAgent({ provider: 'openai', apiKey: 'k', model: 'm' }, 'banana', ctx(), () => {});
+    const out = await runAgent({ provider: 'openai', apiKey: 'k', model: 'gpt-4.1-mini' }, 'banana', ctx(), () => {});
+    expect(out).toBe('Logged 120 g banana.');
     expect(useStore.getState().foodEntries[0].grams).toBe(120);
+    expect((fetchMock.mock.calls[0] as any)[0]).toBe('https://api.openai.com/v1/responses');
+    const first = JSON.parse((fetchMock.mock.calls[0] as any)[1].body);
+    expect(first.reasoning).toBeUndefined(); // not a reasoning model
     const body = JSON.parse((fetchMock.mock.calls[1] as any)[1].body);
-    expect(body.messages.at(-1)).toMatchObject({ role: 'tool', tool_call_id: 'c1' });
+    // the call and its result are both sent back
+    expect(body.input.at(-2)).toMatchObject({ type: 'function_call', call_id: 'c1' });
+    expect(body.input.at(-1)).toMatchObject({ type: 'function_call_output', call_id: 'c1' });
   });
 
-  test('OpenAI GPT-5: search first, database ids only, no estimate tool, low reasoning effort', async () => {
+  test('OpenAI GPT-5: reasoning on, reasoning items carried between steps, database ids only, no estimate tool', async () => {
+    const thought = { type: 'reasoning', id: 'rs_1', summary: [], encrypted_content: 'enc' };
     const replies = [
-      { choices: [{ message: { role: 'assistant', content: null, tool_calls: [{ id: 'c1', type: 'function', function: { name: 'log_food', arguments: JSON.stringify({ said: 'a banana', food_id: banana.id, quantity: 1, unit: medium, meal: 'snack' }) } }] } }] },
-      { choices: [{ message: { role: 'assistant', content: null, tool_calls: [{ id: 'c2', type: 'function', function: { name: 'search_foods', arguments: JSON.stringify({ queries: ['banana', 'bananas raw'] }) } }] } }] },
-      { choices: [{ message: { role: 'assistant', content: null, tool_calls: [{ id: 'c3', type: 'function', function: { name: 'log_food', arguments: JSON.stringify({ said: 'a banana', food_id: banana.id, quantity: 1, unit: medium, meal: 'snack' }) } }] } }] },
-      { choices: [{ message: { role: 'assistant', content: '1 banana' } }] },
+      reply(thought, fcall('c1', 'log_food', { said: 'a banana', food_id: banana.id, quantity: 1, unit: medium, meal: 'snack' })),
+      reply(fcall('c2', 'search_foods', { queries: ['banana', 'bananas raw'] })),
+      reply(fcall('c3', 'log_food', { said: 'a banana', food_id: banana.id, quantity: 1, unit: medium, meal: 'snack' })),
+      reply(say('1 banana')),
     ];
     const fetchMock = vi.fn(async () => ok(replies.shift()));
     vi.stubGlobal('fetch', fetchMock);
     const events: AgentEvent[] = [];
     await runAgent({ provider: 'openai', apiKey: 'k', model: 'gpt-5.4-mini' }, 'a banana', { ...ctx(), seen: new Set(), allowEstimates: false }, (e) => events.push(e));
     const first = JSON.parse((fetchMock.mock.calls[0] as any)[1].body);
-    expect(first.model).toBe('gpt-5.4-mini');
-    expect(first.reasoning_effort).toBe('low');
-    expect(first.tools.map((t: any) => t.function.name)).not.toContain('create_food');
-    expect(first.messages[0].content).toMatch(/NEVER log a food from memory/);
+    expect(first).toMatchObject({ model: 'gpt-5.4-mini', reasoning: { effort: 'low' }, store: false, include: ['reasoning.encrypted_content'] });
+    expect(first.tools.map((t: any) => t.name)).not.toContain('create_food');
+    expect(first.instructions).toMatch(/NEVER log a food from memory/);
+    expect(first.input[0]).toEqual({ role: 'user', content: 'a banana' });
+    // the model's reasoning item goes back with the next request
+    const second = JSON.parse((fetchMock.mock.calls[1] as any)[1].body);
+    expect(second.input).toContainEqual(thought);
     // the log before any search is refused, the one after it is accepted
     expect(events.filter((e) => e.type === 'tool').map((e: any) => e.ok)).toEqual([false, true, true]);
     expect(useStore.getState().foodEntries).toHaveLength(1);

@@ -2,7 +2,7 @@ import type { Food } from '../domain/types';
 import type { Nutrients } from '../domain/nutrients';
 import { uid } from '../data/store';
 import { t } from '../i18n';
-import type { AgentConfig } from './runAgent';
+import { isReasoningModel, type AgentConfig } from './runAgent';
 
 /**
  * Reads a photographed nutrition-facts table — the producer's own declaration — with a vision model.
@@ -131,19 +131,19 @@ async function post(url: string, headers: Record<string, string>, body: unknown,
 export async function readLabel(cfg: AgentConfig, dataUrl: string, barcode?: string, signal?: AbortSignal): Promise<LabelReading> {
   let args: Record<string, unknown> | undefined;
   if (cfg.provider === 'openai') {
+    // Responses API: image input + a forced function call
     const body: Record<string, unknown> = {
       model: cfg.model,
-      messages: [
-        { role: 'system', content: SYSTEM },
-        { role: 'user', content: [{ type: 'text', text: 'Read this nutrition table.' }, { type: 'image_url', image_url: { url: dataUrl, detail: 'high' } }] },
-      ],
-      tools: [{ type: 'function', function: { name: TOOL.name, description: TOOL.description, parameters: TOOL.input_schema } }],
-      tool_choice: { type: 'function', function: { name: TOOL.name } },
+      instructions: SYSTEM,
+      input: [{ role: 'user', content: [{ type: 'input_text', text: 'Read this nutrition table.' }, { type: 'input_image', image_url: dataUrl, detail: 'high' }] }],
+      tools: [{ type: 'function', name: TOOL.name, description: TOOL.description, parameters: TOOL.input_schema, strict: false }],
+      tool_choice: { type: 'function', name: TOOL.name },
+      store: false,
     };
-    if (/^(gpt-5|o\d)/.test(cfg.model)) body.reasoning_effort = 'low';
-    const res = await post('https://api.openai.com/v1/chat/completions', { authorization: `Bearer ${cfg.apiKey}` }, body, signal);
-    const call = res.choices?.[0]?.message?.tool_calls?.[0];
-    if (call) args = JSON.parse(call.function.arguments || '{}');
+    if (isReasoningModel(cfg.model)) body.reasoning = { effort: 'low' };
+    const res = await post('https://api.openai.com/v1/responses', { authorization: `Bearer ${cfg.apiKey}` }, body, signal);
+    const call = (res.output ?? []).find((o: { type: string }) => o.type === 'function_call');
+    if (call) args = JSON.parse(call.arguments || '{}');
   } else {
     const [, mediaType, data] = dataUrl.match(/^data:(image\/\w+);base64,(.*)$/) ?? [];
     const res = await post(
